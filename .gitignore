@@ -22,7 +22,6 @@ htmlcov/
 
 # OS / editor
 .DS_Store
-# Internal artifacts (kept local, not published to the public repo)
+# Local-only artifacts (kept on disk, never published)
 .kiro/
-docs/blog-post-draft.md
-docs/security-review-exceptions.md
+.internal/
