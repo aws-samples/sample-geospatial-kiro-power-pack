@@ -1,0 +1,569 @@
+{
+  "power": "kiro-geospatial",
+  "displayName": "Geospatial Power Pack",
+  "version": "0.2.0",
+  "description": "A modular Kiro Power giving developers unified, AI-assisted access to the fragmented geospatial landscape across open, free-tier, and proprietary sources. Built on a dual-fragmentation framing where data access (Pillar A) and processing/compute (Pillar B) receive equal weight, plus a GeoAI pillar (Pillar C).",
+  "credentialSurface": "mcp.json",
+  "enums": {
+    "pillar": ["Hub", "Shared base", "A", "B", "C", "Credentialed", "Credentialed (Pillar B-class)", "Peer Power"],
+    "status": ["MVP", "Expansion"],
+    "opennessTier": ["Open", "Free-Tier", "Open / Free-Tier", "Proprietary/Licensed", "Open (AWS account)"],
+    "credentialClassification": ["Required", "Optional", "License-Needed"]
+  },
+  "mvpSet": [
+    "kiro-geospatial",
+    "geo-common",
+    "geo-stac",
+    "geo-vector",
+    "geo-ops",
+    "geo-foundation-models"
+  ],
+  "firstExpansions": ["geo-warehouse"],
+  "companions": [
+    {
+      "name": "gdal-mcp",
+      "relationship": "Recommended companion (third-party). Not part of this Power and not redistributed with it; the user installs it separately from PyPI under its own license.",
+      "identity": "gdal-mcp - GDAL/Rasterio operations MCP server (Wayfinder-Foundry / JordanGunn)",
+      "source": "https://github.com/JordanGunn/gdal-mcp",
+      "package": "gdal-mcp (PyPI)",
+      "license": "MIT (the companion project's own license; see its repository)",
+      "install": "uvx --from gdal-mcp gdal --transport stdio",
+      "complements": "Local-file GDAL processing (workspace-scoped) that complements this pack's cloud-native connectors: file-level raster/vector reprojection and conversion, and common vector ops (buffer, simplify, clip) not covered by geo-ops.",
+      "capabilities": [
+        "raster_info", "raster_convert", "raster_reproject", "raster_stats", "raster_query",
+        "vector_info", "vector_convert", "vector_reproject", "vector_clip", "vector_buffer", "vector_simplify", "vector_query"
+      ],
+      "caveats": [
+        "Operates on local files scoped by GDAL_MCP_WORKSPACES (a colon-separated allowlist of directories). If unset, all paths are allowed - set it to constrain access.",
+        "Includes a reflection middleware: methodology-sensitive tools (reprojection, resampling, query extent) require a structured justification before they execute."
+      ]
+    }
+  ],
+  "servers": [
+    {
+      "name": "kiro-geospatial",
+      "pillar": "Hub",
+      "status": "MVP",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx kiro-geospatial",
+      "role": "Power Hub: Onboarding Dashboard, Resource Catalog, Credential Manager (single mcp.json surface), Orchestration Router.",
+      "credentials": [],
+      "wraps": []
+    },
+    {
+      "name": "geo-common",
+      "pillar": "Shared base",
+      "status": "MVP",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "(installed as a dependency of every server)",
+      "role": "Shared base package: single async httpx HTTP client, RetryPolicy + exponential backoff, rate-limit handling, Error_Taxonomy, BaseGeoServer.",
+      "credentials": [],
+      "wraps": []
+    },
+    {
+      "name": "geo-stac",
+      "pillar": "A",
+      "status": "MVP",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-stac",
+      "role": "STAC catalog search and asset discovery across Earth Search (Element84), MS Planetary Computer, NASA CMR-STAC, Copernicus Data Space, USGS.",
+      "credentials": [
+        {
+          "key": "PC_SDK_SUBSCRIPTION_KEY",
+          "classification": "Optional",
+          "source": "Microsoft Planetary Computer",
+          "description": "Optional subscription key that raises Planetary Computer rate limits; open access works without it."
+        },
+        {
+          "key": "EARTHDATA_TOKEN",
+          "classification": "Optional",
+          "source": "NASA Earthdata / CMR-STAC",
+          "description": "Optional NASA Earthdata bearer token used only for access-restricted collections."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-vector",
+      "pillar": "A",
+      "status": "MVP",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-vector",
+      "role": "Vector features for a spatial extent from OpenStreetMap (Overpass) by default; Overture Maps is supported as an optional, explicitly configured GeoJSON endpoint (Overture has no public REST API - its data is cloud-native GeoParquet queried via DuckDB).",
+      "credentials": [],
+      "wraps": []
+    },
+    {
+      "name": "geo-geocode-route",
+      "pillar": "A",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open / Free-Tier",
+      "uvx": "uvx geo-geocode-route",
+      "role": "Address-to-coordinate geocoding and reverse geocoding (Nominatim, Photon), routing (OSRM, Valhalla), and isochrones (Valhalla); Amazon Location is a credentialed geocoder selectable via source=amazon-location.",
+      "credentials": [
+        {
+          "key": "AMAZON_LOCATION_API_KEY",
+          "classification": "Optional",
+          "source": "Amazon Location Service",
+          "description": "API key for the Amazon Location geocoder, selected via source=amazon-location; the open providers (Nominatim/Photon/OSRM/Valhalla) work without it."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-terrain",
+      "pillar": "A",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-terrain",
+      "role": "Elevation, slope, and hillshade from SRTM (default) and USGS 3DEP via the public OpenTopoData endpoint; the source endpoint/dataset is overridable to point at a self-hosted instance.",
+      "credentials": [
+        {
+          "key": "OPENTOPOGRAPHY_API_KEY",
+          "classification": "Optional",
+          "source": "OpenTopography",
+          "description": "Optional API key for OpenTopography-hosted datasets; other open DEM sources work without it."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-weather-climate",
+      "pillar": "A",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open / Free-Tier",
+      "uvx": "uvx geo-weather-climate",
+      "role": "Weather, climate, and environmental observations from Open-Meteo (default), OpenAQ, and NOAA/NWS (US); NOAA Climate Data Online when configured. ERA5 reanalysis is covered via the Open-Meteo archive (ERA5-derived), not a direct Copernicus CDS client.",
+      "credentials": [
+        {
+          "key": "NOAA_CDO_TOKEN",
+          "classification": "Optional",
+          "source": "NOAA Climate Data Online",
+          "description": "NOAA CDO API token; required only for the credentialed 'cdo' source (selectable via source=cdo). Open-Meteo/OpenAQ/NWS work without it."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-biodiversity",
+      "pillar": "A",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-biodiversity",
+      "role": "Species occurrence records from GBIF, iNaturalist, IUCN.",
+      "credentials": [
+        {
+          "key": "INATURALIST_TOKEN",
+          "classification": "Optional",
+          "source": "iNaturalist",
+          "description": "Optional token for authenticated iNaturalist queries; GBIF open access works without it."
+        },
+        {
+          "key": "IUCN_TOKEN",
+          "classification": "Optional",
+          "source": "IUCN Red List",
+          "description": "IUCN Red List API v4 account token; enables the opt-in 'iucn' source (select via source=iucn) for taxon conservation-status lookups. GBIF/iNaturalist occurrence search works without it."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-ops",
+      "pillar": "B",
+      "status": "MVP",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-ops",
+      "role": "CRS transforms, geometry validation/operations, spatial joins, overlay, buffer and convex hull via PyProj, Shapely/GEOS, GeoPandas. Local, pure-function logic.",
+      "credentials": [],
+      "wraps": []
+    },
+    {
+      "name": "geo-formats",
+      "pillar": "B",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-formats",
+      "role": "COG / GeoParquet / Zarr / COPC conversion and validation via GDAL, rio-cogeo.",
+      "credentials": [
+        {
+          "key": "AWS_ACCESS_KEY_ID",
+          "classification": "Optional",
+          "source": "AWS S3 (output destination)",
+          "description": "Optional AWS credentials for reading or writing cloud-optimized outputs on S3; local file I/O works without them."
+        },
+        {
+          "key": "AWS_SECRET_ACCESS_KEY",
+          "classification": "Optional",
+          "source": "AWS S3 (output destination)",
+          "description": "Optional AWS secret paired with AWS_ACCESS_KEY_ID."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-query",
+      "pillar": "B",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-query",
+      "role": "Spatial SQL over data in place via DuckDB Spatial (open, geo-query[duckdb]) and Amazon Athena (geo-query[athena], wired when AWS_ACCESS_KEY_ID is set). Both ship as concrete engines.",
+      "credentials": [
+        {
+          "key": "AWS_ACCESS_KEY_ID",
+          "classification": "Optional",
+          "source": "Amazon Athena / S3",
+          "description": "Optional AWS credentials for the Athena engine (install geo-query[athena]); the DuckDB Spatial engine works without them."
+        },
+        {
+          "key": "AWS_SECRET_ACCESS_KEY",
+          "classification": "Optional",
+          "source": "Amazon Athena / S3",
+          "description": "Optional AWS secret paired with AWS_ACCESS_KEY_ID."
+        },
+        {
+          "key": "ATHENA_S3_STAGING_DIR",
+          "classification": "Optional",
+          "source": "Amazon Athena",
+          "description": "S3 staging location for Athena query results (s3://...). Required to run the Athena engine; an optional ATHENA_DATABASE sets the default Glue database."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-raster",
+      "pillar": "B",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-raster",
+      "role": "Windowed Cloud-Optimized GeoTIFF reads, band math (NDVI/NDWI/NBR), and zonal statistics over rasters via byte-range reads (rasterio/rioxarray, rasterstats, TiTiler).",
+      "credentials": [
+        {
+          "key": "AWS_ACCESS_KEY_ID",
+          "classification": "Optional",
+          "source": "AWS S3 (raster assets)",
+          "description": "Optional AWS credentials for private S3 raster assets; public assets work without them."
+        },
+        {
+          "key": "AWS_SECRET_ACCESS_KEY",
+          "classification": "Optional",
+          "source": "AWS S3 (raster assets)",
+          "description": "Optional AWS secret paired with AWS_ACCESS_KEY_ID."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-pointcloud",
+      "pillar": "B",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-pointcloud",
+      "role": "Cloud-Optimized Point Cloud (COPC) read/write and streaming via PDAL.",
+      "credentials": [
+        {
+          "key": "AWS_ACCESS_KEY_ID",
+          "classification": "Optional",
+          "source": "AWS S3 (COPC assets)",
+          "description": "Optional AWS credentials for private S3 point-cloud assets; public assets work without them."
+        },
+        {
+          "key": "AWS_SECRET_ACCESS_KEY",
+          "classification": "Optional",
+          "source": "AWS S3 (COPC assets)",
+          "description": "Optional AWS secret paired with AWS_ACCESS_KEY_ID."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-index",
+      "pillar": "B",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-index",
+      "role": "H3 (resolutions 0-15) and S2 (levels 0-30) spatial indexing via h3 and s2geometry. Local, pure-function logic.",
+      "credentials": [],
+      "wraps": []
+    },
+    {
+      "name": "geo-foundation-models",
+      "pillar": "C",
+      "status": "MVP",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-foundation-models",
+      "role": "Geospatial foundation-model embeddings, segmentation, and change detection via Clay, Prithvi-EO-2.0, SatCLIP, SAMGeo.",
+      "credentials": [
+        {
+          "key": "HF_TOKEN",
+          "classification": "Optional",
+          "source": "Hugging Face (model weights)",
+          "description": "Optional Hugging Face token for gated model weights; openly licensed models load without it."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-embedding-search",
+      "pillar": "C",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-embedding-search",
+      "role": "Embed, index, and run semantic/similarity search via OpenSearch and LanceDB.",
+      "credentials": [
+        {
+          "key": "OPENSEARCH_URL",
+          "classification": "Optional",
+          "source": "OpenSearch",
+          "description": "Optional OpenSearch endpoint; the default LanceDB local store works without it."
+        },
+        {
+          "key": "OPENSEARCH_USERNAME",
+          "classification": "Optional",
+          "source": "OpenSearch",
+          "description": "Optional OpenSearch username paired with OPENSEARCH_URL."
+        },
+        {
+          "key": "OPENSEARCH_PASSWORD",
+          "classification": "Optional",
+          "source": "OpenSearch",
+          "description": "Optional OpenSearch password paired with OPENSEARCH_URL."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-warehouse",
+      "pillar": "Credentialed (Pillar B-class)",
+      "status": "Expansion",
+      "firstExpansion": true,
+      "tier": "Proprietary/Licensed",
+      "uvx": "uvx geo-warehouse",
+      "role": "Spatial SQL at warehouse scale against BigQuery, Snowflake, Redshift, and Databricks. All four ship as concrete engines (geo-warehouse[bigquery|redshift|snowflake|databricks], each wired when its *_CONNECTION/credential is set). Connection secrets live in the *_CONNECTION env (a JSON object or a path to a JSON file); the per-call connection argument is the non-secret database/schema. Processing/compute-class (counts toward Pillar B). First expansion module.",
+      "credentials": [
+        {
+          "key": "BIGQUERY_CREDENTIALS",
+          "classification": "License-Needed",
+          "source": "Google BigQuery",
+          "license_reference": "Requires a Google Cloud BigQuery account (the free BigQuery sandbox is sufficient for testing). See Google Cloud terms.",
+          "description": "Service-account credential for BigQuery: either the path to a service-account JSON key file or the JSON itself. The connection argument is the GCP project id. Install the geo-warehouse[bigquery] extra to enable the concrete engine. If your org blocks service-account keys (iam.disableServiceAccountKeyCreation), use Application Default Credentials instead: run `gcloud auth application-default login` and set BIGQUERY_USE_ADC=1 (no key file needed)."
+        },
+        {
+          "key": "SNOWFLAKE_CONNECTION",
+          "classification": "License-Needed",
+          "source": "Snowflake",
+          "license_reference": "Requires a Snowflake account/subscription. See Snowflake terms of service.",
+          "description": "Snowflake connection as a JSON object (or a path to a JSON file): account, user, and an auth credential (password, or the more secure private_key_file / authenticator for key-pair / SSO-OAuth), plus optional warehouse/role/schema. The connection argument is the database. Install geo-warehouse[snowflake]."
+        },
+        {
+          "key": "REDSHIFT_CONNECTION",
+          "classification": "License-Needed",
+          "source": "Amazon Redshift",
+          "license_reference": "Requires an Amazon Redshift cluster/serverless workgroup. See AWS terms.",
+          "description": "Redshift connection as a JSON object (or a path to a JSON file): host/port/user/password, or the more secure IAM auth (iam:true with cluster_identifier/region/db_user, or is_serverless). TLS is enforced. The connection argument is the database. Install geo-warehouse[redshift]."
+        },
+        {
+          "key": "DATABRICKS_CONNECTION",
+          "classification": "License-Needed",
+          "source": "Databricks",
+          "license_reference": "Requires a Databricks workspace and personal access token. See Databricks terms.",
+          "description": "Databricks connection as a JSON object (or a path to a JSON file): server_hostname + http_path of the SQL warehouse, plus access_token (PAT) or OAuth client_id/client_secret; optional catalog. The connection argument is the schema. Install geo-warehouse[databricks]."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-commercial-imagery",
+      "pillar": "Credentialed",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Proprietary/Licensed",
+      "uvx": "uvx geo-commercial-imagery",
+      "role": "Commercial imagery discovery and ordering, routed by provider: Maxar WorldView via the Sentinel Hub Third-Party Data Import (TPDI) API, and Planet (PlanetScope/SkySat) via Planet's own Data + Orders APIs. Sentinel Hub TPDI is being sunset for Planet data and no longer offers Airbus, so Planet uses its first-party APIs and Maxar stays on TPDI. Maxar orders are create-only by default; Planet orders are placed on confirm.",
+      "credentials": [
+        {
+          "key": "SENTINELHUB_CLIENT_ID",
+          "classification": "License-Needed",
+          "source": "Sentinel Hub (Maxar)",
+          "license_reference": "Requires a Sentinel Hub commercial subscription with Maxar access. See https://www.sentinel-hub.com/.",
+          "description": "Sentinel Hub OAuth client id (Maxar via TPDI)."
+        },
+        {
+          "key": "SENTINELHUB_CLIENT_SECRET",
+          "classification": "License-Needed",
+          "source": "Sentinel Hub (Maxar)",
+          "license_reference": "Requires a Sentinel Hub commercial subscription with Maxar access. See https://www.sentinel-hub.com/.",
+          "description": "Sentinel Hub OAuth client secret (Maxar via TPDI)."
+        },
+        {
+          "key": "PL_API_KEY",
+          "classification": "License-Needed",
+          "source": "Planet",
+          "license_reference": "Requires a Planet account/subscription and API key. See https://docs.planet.com/.",
+          "description": "Planet API key for the Planet Data + Orders APIs (PlanetScope/SkySat)."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "aws-geo-compute",
+      "pillar": "Peer Power",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open (AWS account)",
+      "uvx": "uvx aws-geo-compute",
+      "role": "Peer Power for heavy/distributed compute: deterministic task-type to execution-target mapping over AWS Batch, Amazon ECS with AWS Fargate, Amazon EMR with Apache Sedona, and Amazon SageMaker AI. Ships a concrete AWS Batch backend (aws-geo-compute[aws]) covering the Batch and Fargate targets, wired when AWS_ACCESS_KEY_ID is set and AWS_BATCH_JOB_QUEUE/AWS_BATCH_JOB_DEFINITION are configured; Amazon EMR and Amazon SageMaker AI remain bring-your-own-backend. Engine selection and planning always run offline.",
+      "credentials": [
+        {
+          "key": "AWS_ACCESS_KEY_ID",
+          "classification": "Optional",
+          "source": "AWS account",
+          "description": "AWS access key id used to submit AWS Batch, AWS Fargate, Amazon EMR, and Amazon SageMaker AI jobs and read/write S3 outputs. Optional: engine selection and planning run offline; enforced at job submit/status time."
+        },
+        {
+          "key": "AWS_SECRET_ACCESS_KEY",
+          "classification": "Optional",
+          "source": "AWS account",
+          "description": "AWS secret paired with AWS_ACCESS_KEY_ID. Optional; enforced at job submit/status time."
+        },
+        {
+          "key": "AWS_REGION",
+          "classification": "Optional",
+          "source": "AWS account",
+          "description": "AWS region in which compute jobs run. Optional; enforced at job submit/status time."
+        }
+      ],
+      "wraps": []
+    },
+    {
+      "name": "geo-ogc",
+      "pillar": "A",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-ogc",
+      "role": "Fetch GeoJSON features for a spatial extent from any OGC API - Features service (pygeoapi, GeoServer OGC API, ldproxy) by endpoint + collection id.",
+      "credentials": [],
+      "wraps": []
+    },
+    {
+      "name": "geo-3d",
+      "pillar": "B",
+      "status": "Expansion",
+      "firstExpansion": false,
+      "tier": "Open",
+      "uvx": "uvx geo-3d",
+      "role": "3D geospatial formats: inspect/validate OGC 3D Tiles tilesets and glTF/GLB assets, tile point clouds into 3D Tiles (.pnts), and mesh DEM grids into glTF/GLB terrain. Local, dependency-free.",
+      "credentials": [],
+      "wraps": []
+    }
+  ],
+  "skills": [
+    {
+      "name": "cloud-optimized-formats",
+      "description": "When to use COG/GeoParquet/Zarr/COPC and how to write cloud-optimized outputs.",
+      "activation": ["**/*.tif", "**/*.tiff", "**/*.parquet", "**/*.zarr", "raster/vector code"]
+    },
+    {
+      "name": "crs-handling",
+      "description": "Always track CRS; reproject explicitly; avoid silent axis-order bugs.",
+      "activation": ["code referencing pyproj", "code referencing crs", "code referencing EPSG"]
+    },
+    {
+      "name": "tool-selection",
+      "description": "Decision tree for choosing the right server/engine for a task and data size.",
+      "activation": ["natural-language task context"]
+    },
+    {
+      "name": "spatial-sql",
+      "description": "Run spatial SQL across engines: pick geo-query vs geo-warehouse, and use the right ST_* function names per engine.",
+      "activation": ["code referencing spatial_sql", "code referencing warehouse_spatial_sql", "code referencing ST_ functions", "**/*.sql", "geo-query context", "geo-warehouse context"]
+    },
+    {
+      "name": "stac-metadata",
+      "description": "Proper STAC item/asset metadata: datetime, bbox, collections.",
+      "activation": ["**/*stac*", "catalog code"]
+    },
+    {
+      "name": "tiling",
+      "description": "Dynamic tiling, overview levels, and web-mercator pyramids.",
+      "activation": ["raster/tiling code"]
+    },
+    {
+      "name": "geoai-embedding",
+      "description": "GeoAI embedding workflow: tile -> model -> embedding -> index.",
+      "activation": ["geo-foundation-models context", "geo-embedding-search context"]
+    }
+  ],
+  "steering": [
+    {
+      "name": "cog-conversion",
+      "description": "read raster -> validate -> to_cog (overviews) -> verify pixel-exact round-trip -> write to silver/gold.",
+      "filePatternTriggers": ["**/*.tif", "**/*.tiff", "conversion scripts"]
+    },
+    {
+      "name": "zonal-statistics",
+      "description": "load raster + vector zones -> align CRS -> zonal_statistics -> handle no-data zones -> emit GeoParquet.",
+      "filePatternTriggers": ["**/*zonal*", "**/*stats*", "raster x vector code"]
+    },
+    {
+      "name": "stac-discover-analyze",
+      "description": "stac_search -> select assets -> windowed read_window -> analyze -> summarize provenance.",
+      "filePatternTriggers": ["**/*stac*", "discovery notebooks"]
+    },
+    {
+      "name": "embedding-change-detection",
+      "description": "tile two dates -> embed_tile (same model) -> detect_change -> threshold/report.",
+      "filePatternTriggers": ["**/*change*", "**/*embedding*"]
+    },
+    {
+      "name": "geocode-route",
+      "description": "geocode origin+destination -> route -> emit GeoJSON.",
+      "filePatternTriggers": ["**/*geocode*", "**/*route*"]
+    }
+  ],
+  "pillarReconciliation": {
+    "requirement": "6.7",
+    "rule": "Across the combined MVP + expansion set, the count of Pillar B (processing/compute) MCP servers SHALL be no fewer than the count of Pillar A (data-access) MCP servers.",
+    "pillarA_dataAccess": {
+      "servers": [
+        "geo-stac",
+        "geo-vector",
+        "geo-geocode-route",
+        "geo-terrain",
+        "geo-weather-climate",
+        "geo-biodiversity"
+      ],
+      "count": 6
+    },
+    "pillarB_processing": {
+      "servers": [
+        "geo-ops",
+        "geo-formats",
+        "geo-query",
+        "geo-raster",
+        "geo-pointcloud",
+        "geo-index",
+        "geo-warehouse"
+      ],
+      "count": 7,
+      "note": "Six native Pillar B servers plus geo-warehouse (processing-class, warehouse-scale spatial SQL). The aws-geo-compute peer Power adds further processing weight but is not counted here."
+    },
+    "satisfied": true
+  }
+}

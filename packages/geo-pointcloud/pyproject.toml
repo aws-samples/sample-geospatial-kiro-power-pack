@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "geo-pointcloud"
+version = "0.2.0"
+description = "Pillar B (expansion) MCP server: Cloud-Optimized Point Cloud (COPC) read and write via PDAL."
+requires-python = ">=3.10"
+license = "MIT-0"
+authors = [{ name = "Geospatial Power Pack Contributors" }]
+keywords = ["kiro", "geospatial", "mcp", "point-cloud", "copc", "lidar"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+dependencies = [
+    "geo-common>=0.1",
+    "httpx>=0.27",
+    "pydantic>=2",
+    "mcp>=1.0,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0,<9", "pytest-asyncio>=0.23,<1", "hypothesis>=6.100"]
+# The production COPC backend (PdalCopcBackend). PDAL's Python bindings require
+# the native PDAL library to be present (e.g. `brew install pdal` /
+# `conda install -c conda-forge pdal python-pdal`). Without this extra the
+# server still works via the pure-Python LocalCopcBackend default.
+pdal = ["pdal>=3.4", "numpy>=1.24"]
+
+[project.scripts]
+geo-pointcloud = "geo_pointcloud.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["geo_pointcloud"]

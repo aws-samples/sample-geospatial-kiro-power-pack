@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+.venv-*/
+venv/
+env/
+
+# Test / tooling caches
+.pytest_cache/
+.hypothesis/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# OS / editor
+.DS_Store
+# Internal artifacts (kept local, not published to the public repo)
+.kiro/
+docs/blog-post-draft.md
+docs/security-review-exceptions.md

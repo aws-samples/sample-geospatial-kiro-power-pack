@@ -1,0 +1,43 @@
+# Root tooling configuration for the Geospatial Power Pack monorepo.
+#
+# This file intentionally has NO [project] table: it is not an installable
+# package and must not clash with the per-package pyproject.toml files under
+# packages/*. It exists only to (a) provide the repo-wide pytest configuration
+# and (b) declare the shared dev/test dependency group for the whole monorepo.
+
+# --- Shared dev/test dependencies (PEP 735 dependency groups) ---------------
+# Install with `uv sync --group test` or `pip install --group test`.
+[dependency-groups]
+test = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "hypothesis>=6.100",
+    "httpx>=0.27",
+    "moto>=5.0",
+    "localstack>=3.0",
+]
+dev = [
+    { include-group = "test" },
+]
+
+# --- Repo-wide pytest configuration -----------------------------------------
+# pytest treats this pyproject.toml as the config root because it is the only
+# one in the tree containing a [tool.pytest.ini_options] table; the per-package
+# pyproject.toml files (which omit this table) are ignored for config discovery.
+[tool.pytest.ini_options]
+minversion = "8.0"
+# Discover tests across every package in the monorepo.
+testpaths = ["packages"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+# Property and integration tests use async httpx clients; collect them without
+# per-test markers. Single execution (no watch mode) per the design.
+asyncio_mode = "auto"
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+    "property: property-based (Hypothesis) tests tagged 'Feature: geospatial-power-pack, Property {n}'",
+    "integration: example-based/integration tests against mocked or live sources",
+    "live: smoke tests that make real network calls to open data sources (deselected by default)",
+    "slow: tests that take a long time to run",
+]

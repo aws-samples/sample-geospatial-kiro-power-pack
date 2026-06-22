@@ -1,0 +1,38 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "geo-commercial-imagery"
+version = "0.2.0"
+description = "Credentialed (expansion) MCP server: commercial imagery search and ordering, routed by provider — Maxar via Sentinel Hub TPDI and Planet via Planet's own Data + Orders APIs."
+requires-python = ">=3.10"
+license = "MIT-0"
+authors = [{ name = "Geospatial Power Pack Contributors" }]
+keywords = ["kiro", "geospatial", "mcp", "imagery", "satellite", "sentinel-hub", "planet", "maxar"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+dependencies = [
+    "geo-common>=0.1",
+    "httpx>=0.27",
+    "pydantic>=2",
+    "mcp>=1.0,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0,<9", "pytest-asyncio>=0.23,<1", "hypothesis>=6.100"]
+
+[project.scripts]
+geo-commercial-imagery = "geo_commercial_imagery.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["geo_commercial_imagery"]

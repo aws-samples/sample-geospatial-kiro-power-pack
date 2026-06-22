@@ -1,0 +1,50 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "geo-common"
+version = "0.2.0"
+description = "Shared base for the Geospatial Power Pack: async HTTP client with retry/backoff, error taxonomy, BaseGeoServer, and the MCP stdio runtime."
+license = "MIT-0"
+requires-python = ">=3.10"
+authors = [
+    { name = "Geospatial Power Pack Contributors" },
+]
+keywords = [
+    "kiro",
+    "geospatial",
+    "gis",
+    "mcp",
+    "httpx",
+    "shared-base",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: GIS",
+]
+dependencies = [
+    "httpx>=0.27,<1",
+    "pydantic>=2,<3",
+    "mcp>=1.0,<2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0,<9",
+    "pytest-asyncio>=0.23,<1",
+    "hypothesis>=6.100",
+]
+
+[project.scripts]
+geo-common = "geo_common.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["geo_common"]

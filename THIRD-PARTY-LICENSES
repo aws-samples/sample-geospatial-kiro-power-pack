@@ -1,0 +1,119 @@
+Third-Party Licenses
+====================
+
+This project does **not** vendor or redistribute third-party source code. It is
+a set of Python packages that:
+
+  1. depend on third-party libraries installed separately from PyPI (declared in
+     each package's `pyproject.toml`), each governed by its own license; and
+  2. reference external Model Context Protocol (MCP) servers that run as
+     separate processes (and are documented as optional companions), and are
+     not redistributed here.
+
+This document attributes those third parties. License identifiers below are
+provided for convenience; the authoritative license text ships with each
+project's own distribution. No copyleft (e.g. GPL/LGPL) runtime dependency is
+included.
+
+--------------------------------------------------------------------------------
+Python dependencies (installed from PyPI; not redistributed in this repository)
+--------------------------------------------------------------------------------
+
+Runtime:
+  httpx                         BSD-3-Clause
+  pydantic                      MIT
+  mcp (MCP Python SDK)          MIT
+  boto3 / botocore              Apache-2.0
+  rasterio                      BSD-3-Clause
+  shapely                       BSD-3-Clause
+  pyproj                        MIT
+  numpy                         BSD-3-Clause
+  pyarrow (Apache Arrow)        Apache-2.0
+  duckdb                        MIT
+  h3 (h3-py bindings)           Apache-2.0
+  jsonschema                    MIT
+
+Optional extras (installed only when the corresponding extra is enabled):
+  pdal (PDAL Python bindings)   BSD-3-Clause
+  redshift-connector            Apache-2.0
+  snowflake-connector-python    Apache-2.0
+  databricks-sql-connector      Apache-2.0
+  google-cloud-bigquery         Apache-2.0
+
+Development / test only (not distributed with the runtime):
+  pytest                        MIT
+  pytest-asyncio                Apache-2.0
+  hypothesis                    MPL-2.0
+  moto                          Apache-2.0
+
+--------------------------------------------------------------------------------
+External MCP servers (referenced / documented as companions; not redistributed)
+--------------------------------------------------------------------------------
+
+  gis-mcp     MIT   https://github.com/mahdin75/gis-mcp
+              Documented as an optional companion (PySAL spatial statistics and
+              map visualization); installed separately by the user under its own
+              license, invoked as a separate MCP process, not bundled.
+
+  gdal-mcp    MIT   https://github.com/JordanGunn/gdal-mcp
+              Documented as an optional local-file GDAL/Rasterio companion in
+              README.md / POWER.md; installed separately by the user under its
+              own license, not bundled.
+
+--------------------------------------------------------------------------------
+Data sources and model attribution
+--------------------------------------------------------------------------------
+
+No datasets or model weights are redistributed in this repository; they are
+accessed at runtime via their own endpoints/APIs under their respective terms.
+The pack credits the providers below. Several licenses (CC-BY 4.0, ODbL, the
+Copernicus Sentinel Data licence) require attribution wherever the data is used
+or its use is disclosed.
+
+Datasets used by the pack (Registry of Open Data on AWS):
+
+  Sentinel-2 Cloud-Optimized GeoTIFFs    Copernicus Sentinel Data licence
+    (the `sentinel-cogs` bucket, queried via the Earth Search STAC API,
+    maintained by Element 84). Free, full, and open access.
+    Attribution: "Contains modified Copernicus Sentinel data [year]".
+
+  LGND Clay v1.5 Sentinel-2 embeddings   CC-BY 4.0
+    (`s3://us-west-2.opendata.source.coop/clay/lgnd-clay-v1-5-sentinel-2-l2a`,
+    managed by Source Cooperative).
+    Attribution: "Clay v1.5 Sentinel-2. Source Cooperative.
+    https://source.coop/clay/lgnd-clay-v1-5-sentinel-2-l2a".
+
+Geospatial foundation models (referenced; the on-tile default is a deterministic
+local stand-in, real weights are optional and user-supplied):
+
+  Clay (made-with-clay/Clay)             weights CC-BY, code Apache-2.0
+  Prithvi-EO-2.0 (ibm-nasa-geospatial)   Apache-2.0   (IBM / NASA / Julich)
+  SatCLIP (microsoft/satclip)            MIT          (research use; the model
+                                                       card states it is not
+                                                       intended for production)
+  SAMGeo / segment-geospatial (opengeos) MIT; underlying Meta Segment Anything
+                                                       (SAM) is Apache-2.0
+
+Default connector data sources (accessed at runtime; attribution where required):
+
+  OpenStreetMap (Overpass, Nominatim, Photon, OSRM, Valhalla, Overture base)
+                                         ODbL 1.0
+    Attribution: "(C) OpenStreetMap contributors".
+  Open-Meteo                             CC-BY 4.0
+    Attribution: "Weather data by Open-Meteo.com".
+  OpenAQ                                 CC-BY 4.0
+  GBIF                                   per-dataset (CC0 / CC-BY / CC-BY-NC);
+                                         cite the GBIF download/source
+  iNaturalist                            per-observation Creative Commons terms
+  IUCN Red List                          IUCN Red List terms of use (attribution
+                                         required; credentialed)
+  NOAA / NWS / NOAA CDO                  US Government public domain
+  SRTM, USGS 3DEP (via OpenTopoData)     public domain (NASA / USGS)
+  Landsat (USGS, via STAC catalogs)      public domain
+
+Notes:
+
+* License identifiers are provided for convenience; the authoritative terms ship
+  with each dataset/model and may vary by specific resource (e.g. an individual
+  GBIF dataset or a fine-tuned model variant). Confirm the terms of the exact
+  resource you access.
