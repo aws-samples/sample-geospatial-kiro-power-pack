@@ -125,6 +125,44 @@ purely as recommendations, with attribution.
     geometry ops; `geo-ops` now implements `buffer` and `convex_hull` natively,
     so `gis-mcp` is a recommended companion rather than a dependency.
 
+### Hosted, commercial MCP servers (third-party)
+
+The companions above are open-source, locally-run tools. The servers below are
+**third-party, commercial, hosted** MCP services — **not part of this Power, not
+redistributed, and not affiliated with or endorsed by AWS**. Each requires its
+own account/license. They are remote MCP endpoints (unlike the pack's local
+`uvx` servers), listed for awareness because they offer managed, at-scale
+capabilities the open servers here do not. Esri and Wherobots are members of the
+AWS Partner Network.
+
+**Esri** — two hosted MCP servers (both public beta):
+
+- **ArcGIS Enterprise MCP — public beta** — Esri's MCP server over ArcGIS
+  Enterprise content (item/layer search + describe, attribute/spatial queries,
+  map-image export, geocoding). **Beta: not GA, subject to change, not for
+  production.** Commercial; requires an ArcGIS Enterprise deployment + API key.
+  Remote HTTP, bridged into Kiro via the `mcp-remote` npx proxy with a
+  `Authorization: Bearer` header. See the
+  [ArcGIS Enterprise MCP beta docs](https://mcpbeta.webgistesting.net/mcpbetadoc/).
+- **ArcGIS Location Services MCP — public beta** — Esri's hosted MCP server over
+  the ArcGIS Location Platform:
+  geocoding, routing, elevation, and static maps. **Beta: not GA, subject to change, not for production.**
+  Commercial and metered — calls bill against ArcGIS Location Platform usage.
+  Needs a Location Platform account + an access token with beta-access and
+  Geocoding/Routing/Elevation/Static-maps privileges. Remote HTTP, bridged into
+  Kiro via the `mcp-remote` npx proxy with a `Authorization: Bearer` header. See
+  the [ArcGIS Location Services MCP docs](https://developers.arcgis.com/ai-tools/mcp-arcgis-location-services/get-started/).
+
+**Wherobots** — one hosted MCP server:
+
+- **Wherobots Cloud MCP** — managed Apache Sedona spatial lakehouse:
+  catalog exploration, planetary-scale Spatial SQL, and job submission (the
+  open, self-managed equivalent here is the EMR + Apache Sedona path in
+  `aws-geo-compute`). Commercial; the MCP server needs a Wherobots
+  Professional/Innovation/Enterprise organization. Configured with Kiro's
+  `mcpServers` `url` + `x-api-key` header schema. See the
+  [Wherobots Kiro setup docs](https://docs.wherobots.com/develop/agentic-tools/kiro).
+
 ## Cross-cutting principles
 
 - **Single credential surface** — configure keys once in `mcp.json`, each

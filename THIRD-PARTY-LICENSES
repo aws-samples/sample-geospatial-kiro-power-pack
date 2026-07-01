@@ -60,6 +60,31 @@ External MCP servers (referenced / documented as companions; not redistributed)
               README.md / POWER.md; installed separately by the user under its
               own license, not bundled.
 
+  ArcGIS Enterprise MCP (public beta)    Commercial / proprietary (Esri)
+              https://mcpbeta.webgistesting.net/mcpbetadoc/
+              Documented as an optional, third-party hosted companion over the
+              user's own ArcGIS Enterprise content. Public beta (subject to
+              change, not for production). A remote MCP service the user
+              connects to with their own Esri deployment and API key; not
+              bundled, not redistributed, not affiliated with or endorsed by AWS.
+
+  ArcGIS Location Services MCP (public beta)    Commercial / proprietary (Esri)
+              https://developers.arcgis.com/ai-tools/mcp-arcgis-location-services/
+              Documented as an optional, third-party hosted companion over the
+              ArcGIS Location Platform (geocoding, routing, elevation, static
+              maps). Public beta (subject to change, not for production).
+              Commercial and metered (calls bill against ArcGIS Location Platform
+              usage). A remote MCP service the user connects to with their own
+              Esri account and access token; not bundled, not redistributed, not
+              affiliated with or endorsed by AWS.
+
+  Wherobots Cloud MCP    Commercial / proprietary (Wherobots Cloud)
+              https://docs.wherobots.com/develop/agentic-tools/kiro
+              Documented as an optional, third-party hosted companion (managed
+              Apache Sedona spatial lakehouse). A remote MCP service the user
+              connects to with their own Wherobots account; not bundled, not
+              redistributed, not affiliated with or endorsed by AWS.
+
 --------------------------------------------------------------------------------
 Data sources and model attribution
 --------------------------------------------------------------------------------
