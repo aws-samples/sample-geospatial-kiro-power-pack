@@ -215,6 +215,78 @@ does not inherit your shell `PATH` and a bare `"uvx"` fails with
 Rule of thumb: use `gdal-mcp` for local/desktop file processing; use this pack
 for cloud-native reads (STAC, COG byte-range, open APIs).
 
+### Hosted, commercial MCP servers (third-party)
+
+The companions above are open-source, locally-run tools. The servers below are
+**third-party, commercial, hosted** MCP services — **not part of this Power, not
+redistributed with it, and not affiliated with or endorsed by AWS**. Each needs
+its own account/license and is configured by you. They are listed for awareness
+because they offer managed, at-scale capabilities the open servers here do not.
+Unlike the pack's local `uvx` servers, these are remote MCP endpoints. Esri and
+Wherobots are members of the AWS Partner Network.
+
+#### Esri
+
+Esri offers two hosted MCP servers (both public beta):
+
+- **ArcGIS Enterprise MCP — public beta** — Esri's MCP server over your ArcGIS
+  Enterprise content: item/layer search and describe, attribute and spatial
+  `query_data`, map-image export, and geocoding. **This is a beta — not GA; the
+  API and endpoints may change without notice, and it is not for production
+  use.** Commercial; requires an ArcGIS Enterprise deployment and an API key.
+  It is a remote HTTP endpoint; because Kiro launches MCP servers as local
+  stdio child processes, bridge to it with the `mcp-remote` npx proxy and pass
+  the key as a header (keeps the secret out of the URL):
+  ```json
+  "arcgis-enterprise": {
+    "command": "npx",
+    "args": [
+      "-y", "mcp-remote",
+      "https://<host>/<context>/platform/mcp",
+      "--header", "Authorization: Bearer <API_KEY>"
+    ]
+  }
+  ```
+  See the [ArcGIS Enterprise MCP beta docs](https://mcpbeta.webgistesting.net/mcpbetadoc/).
+
+- **ArcGIS Location Services MCP — public beta** — Esri's hosted MCP server over
+  the ArcGIS Location Platform:
+  geocoding (`find_address_candidates`, `reverse_geocode`), routing
+  (`solve_route`), elevation (`elevation_at_locations`), and static maps
+  (`map_with_points`, `map_with_polyline`). **Beta — not GA; may change without notice, not for
+  production.** Commercial and metered: every call bills against your ArcGIS
+  Location Platform usage. Requires a Location Platform account and an
+  access token with beta-access plus Geocoding/Routing/Elevation/Static-maps
+  privileges. Remote HTTP endpoint; bridge to it with the `mcp-remote` npx proxy
+  and pass the token as a Bearer header:
+  ```json
+  "arcgis-location-services": {
+    "command": "npx",
+    "args": [
+      "-y", "mcp-remote",
+      "https://location-services-mcp.arcgis.com/beta/mcp",
+      "--header", "Authorization: Bearer <ACCESS_TOKEN>"
+    ]
+  }
+  ```
+  See the [ArcGIS Location Services MCP docs](https://developers.arcgis.com/ai-tools/mcp-arcgis-location-services/get-started/).
+
+#### Wherobots
+
+- **Wherobots Cloud MCP** — a managed Apache Sedona spatial lakehouse: conversational
+  catalog exploration, planetary-scale Spatial SQL, and job submission without
+  standing up your own cluster (the open, self-managed equivalent here is the
+  EMR + Apache Sedona path in `aws-geo-compute`). Commercial; the MCP server
+  requires a Wherobots Professional, Innovation, or Enterprise organization.
+  Configured directly with Kiro's `mcpServers` `url` + header schema:
+  ```json
+  "wherobots-mcp-server": {
+    "url": "https://api.cloud.wherobots.com/mcp/",
+    "headers": { "x-api-key": "YOUR_WHEROBOTS_API_KEY" }
+  }
+  ```
+  See the [Wherobots Kiro setup docs](https://docs.wherobots.com/develop/agentic-tools/kiro).
+
 ---
 
 ## Credentials reference
