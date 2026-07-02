@@ -273,12 +273,16 @@ Esri offers two hosted MCP servers (both public beta):
 
 #### Wherobots
 
-- **Wherobots Cloud MCP** — a managed Apache Sedona spatial lakehouse: conversational
-  catalog exploration, planetary-scale Spatial SQL, and job submission without
-  standing up your own cluster (the open, self-managed equivalent here is the
-  EMR + Apache Sedona path in `aws-geo-compute`). Commercial; the MCP server
-  requires a Wherobots Professional, Innovation, or Enterprise organization.
-  Configured directly with Kiro's `mcpServers` `url` + header schema:
+- **Wherobots Cloud MCP** — gives an agent a managed spatial lakehouse it can
+  drive with plain language: explore a catalog, run Spatial SQL or Python over
+  planetary-scale datasets, and submit distributed jobs, all without
+  provisioning or tuning a cluster. Physical-world data is structurally different
+  from ordinary tables, and the engine underneath is built for it — by the
+  original creators of Apache Sedona and 100% code-compatible across every
+  spatial function. Commercial; the MCP server requires a Wherobots Professional
+  organization (available on AWS Marketplace). To self-manage the same compute
+  instead, use the EMR + OSS Apache Sedona path in `aws-geo-compute`. Configure
+  it in Kiro directly through the `mcpServers` `url` + header schema:
   ```json
   "wherobots-mcp-server": {
     "url": "https://api.cloud.wherobots.com/mcp/",
