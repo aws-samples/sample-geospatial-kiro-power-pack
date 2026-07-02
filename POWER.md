@@ -155,12 +155,15 @@ AWS Partner Network.
 
 **Wherobots** — one hosted MCP server:
 
-- **Wherobots Cloud MCP** — managed Apache Sedona spatial lakehouse:
-  catalog exploration, planetary-scale Spatial SQL, and job submission (the
-  open, self-managed equivalent here is the EMR + Apache Sedona path in
-  `aws-geo-compute`). Commercial; the MCP server needs a Wherobots
-  Professional/Innovation/Enterprise organization. Configured with Kiro's
-  `mcpServers` `url` + `x-api-key` header schema. See the
+- **Wherobots Cloud MCP** — a managed spatial lakehouse an agent drives in plain
+  language: catalog exploration, Spatial SQL or Python over planetary-scale
+  datasets, and distributed job submission, without provisioning or tuning a
+  cluster. Built for physical-world data by the original creators of Apache
+  Sedona and 100% code-compatible across every spatial function. Commercial; the
+  MCP server requires a Wherobots Professional organization (available on AWS
+  Marketplace). To self-manage the same compute, use the EMR + OSS Apache Sedona
+  path in `aws-geo-compute`. Configured with Kiro's `mcpServers` `url` +
+  `x-api-key` header schema. See the
   [Wherobots Kiro setup docs](https://docs.wherobots.com/develop/agentic-tools/kiro).
 
 ## Cross-cutting principles
