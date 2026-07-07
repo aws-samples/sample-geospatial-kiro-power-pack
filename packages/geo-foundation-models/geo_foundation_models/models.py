@@ -34,6 +34,7 @@ __all__ = [
     "RasterTile",
     "ModelSpec",
     "EmbeddingResult",
+    "AssetChangeResult",
     "EmbeddingMetadata",
     "EmbeddingRecord",
     "SegmentationMask",
@@ -118,6 +119,36 @@ class EmbeddingResult(BaseModel):
             "backend identifier (e.g. 'clay-v1.5') when one is wired in."
         ),
     )
+    structure_only: bool = Field(
+        default=False,
+        description=(
+            "True when the tile carried no inlined pixel data, so the embedding "
+            "was derived from the tile's structure (width/height/bands/format/"
+            "dtype) only. Two structure-only tiles of the same shape yield the "
+            "IDENTICAL embedding, which detect_change reports as 0.0 ('no "
+            "change') even though no pixels were compared — treat a "
+            "structure-only result as not a real measurement."
+        ),
+    )
+
+
+class AssetChangeResult(BaseModel):
+    """Change between two assets embedded server-side (read -> embed -> compare).
+
+    ``change`` is the ``[0.0, 1.0]`` measure from :func:`detect_change`. ``backend``
+    and ``structure_only`` carry the same honesty provenance as
+    :class:`EmbeddingResult` (``structure_only`` is True if *either* asset window
+    had no pixels). ``caveat`` is populated whenever the result is not a
+    calibrated measurement — i.e. under the deterministic stand-in backend or a
+    structure-only read — so the number is never mistaken for a real result.
+    """
+
+    change: float = Field(ge=0.0, le=1.0)
+    model: str = Field(min_length=1)
+    dimension: int = Field(gt=0)
+    backend: str = Field(default="deterministic-local")
+    structure_only: bool = False
+    caveat: Optional[str] = None
 
 
 class EmbeddingMetadata(BaseModel):

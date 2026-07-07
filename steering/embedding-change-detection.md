@@ -15,8 +15,12 @@ fileMatchPattern:
 Quantify change for an area of interest between two acquisition dates by
 comparing geospatial foundation-model embeddings.
 
-- Provider tools: `geo-foundation-models.embed_tile`,
-  `geo-foundation-models.detect_change`
+- Provider tools: `geo-foundation-models.embed_asset` and
+  `geo-foundation-models.detect_change_from_assets` (read a COG window
+  server-side — preferred), `geo-foundation-models.embed_tile` /
+  `detect_change` (when pixels are already in hand), and
+  `geo-foundation-models.available_embedding_periods` /
+  `lookup_embeddings` (real published Clay v1.5 vectors)
 - Requirements: 9.1 (tile ≤1024×1024, supported format, embedding ≤10s), 9.2
   (exactly one model per request from Clay / Prithvi-EO-2.0 / SatCLIP / ...),
   9.5 (scalar change in [0.0, 1.0], higher = more change), 9.7 (reject
@@ -70,6 +74,22 @@ name plus the reason. Deactivate when the triggering file no longer matches.
 
 ## Notes
 
+- **Prefer the one-call bridge.** When the two dates are COGs (e.g. Sentinel-2
+  scenes), `detect_change_from_assets(raster_href_a=..., raster_href_b=...,
+  model=..., window_bbox=..., bands=...)` reads both windows server-side and
+  returns the measure in a single call — no inline pixel plumbing. Use
+  `embed_asset` for a single date. Fall back to `embed_tile`/`detect_change`
+  only when you already hold the pixels.
+- **Honesty gate.** The default backend is a deterministic stand-in with no
+  semantic structure: any two differing windows score ~0.5, and two
+  structure-only (no-pixel) tiles score exactly 0.0. Treat a score as a real,
+  calibrated magnitude **only** with a real-weight backend; `detect_change_from_assets`
+  sets a `caveat` whenever the result is not calibrated, and every embedding
+  carries `backend` and `structure_only` provenance. Do not threshold a
+  stand-in score as if it measured real change.
+- **Real published vectors.** For real Clay v1.5 embeddings use
+  `lookup_embeddings`; call `available_embedding_periods` first, since coverage
+  is only specific months (a before/after outside them is unusable).
 - Identical embeddings must yield a change measure of 0.0 (Property 12); use
   this as a validity check.
 - Comparability depends on using one model and matching tile footprints — never

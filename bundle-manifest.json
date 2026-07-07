@@ -122,7 +122,7 @@
       "firstExpansion": false,
       "tier": "Open",
       "uvx": "uvx geo-terrain",
-      "role": "Elevation, slope, and hillshade from SRTM (default) and USGS 3DEP via the public OpenTopoData endpoint; the source endpoint/dataset is overridable to point at a self-hosted instance.",
+      "role": "Elevation, slope, aspect, and hillshade from SRTM (default) and USGS 3DEP via the public OpenTopoData endpoint (endpoint/dataset overridable); plus dem_zonal for per-zone elevation/slope/aspect statistics over a user-supplied DEM COG via byte-range reads.",
       "credentials": [
         {
           "key": "OPENTOPOGRAPHY_API_KEY",
@@ -247,7 +247,7 @@
       "firstExpansion": false,
       "tier": "Open",
       "uvx": "uvx geo-raster",
-      "role": "Windowed Cloud-Optimized GeoTIFF reads, band math (NDVI/NDWI/NBR), and zonal statistics over rasters via byte-range reads (rasterio/rioxarray, rasterstats, TiTiler).",
+      "role": "Windowed Cloud-Optimized GeoTIFF reads, band math (NDVI/NDWI/NBR), zonal statistics over rasters, and zonal band math (per-pixel index across separate single-band COGs reduced to per-zone stats) via S3/HTTP byte-range reads (pure-Python COG reader; optional numpy accelerator for zonal statistics via the 'fast' extra).",
       "credentials": [
         {
           "key": "AWS_ACCESS_KEY_ID",
@@ -306,7 +306,7 @@
       "firstExpansion": false,
       "tier": "Open",
       "uvx": "uvx geo-foundation-models",
-      "role": "Geospatial foundation-model embeddings, segmentation, and change detection via Clay, Prithvi-EO-2.0, SatCLIP, SAMGeo.",
+      "role": "Geospatial foundation-model embeddings, segmentation, and change detection via Clay, Prithvi-EO-2.0, SatCLIP, SAMGeo (deterministic local stand-in backends by default, pluggable for real weights); server-side read-then-embed of COG windows (embed_asset, detect_change_from_assets); retrieval of real published Clay v1.5 Sentinel-2 vectors and their available periods.",
       "credentials": [
         {
           "key": "HF_TOKEN",
@@ -520,6 +520,11 @@
       "name": "zonal-statistics",
       "description": "load raster + vector zones -> align CRS -> zonal_statistics -> handle no-data zones -> emit GeoParquet.",
       "filePatternTriggers": ["**/*zonal*", "**/*stats*", "raster x vector code"]
+    },
+    {
+      "name": "terrain-zonal",
+      "description": "pick DEM COG -> align zones to DEM CRS -> dem_zonal(elevation/slope/aspect) -> handle no-data zones -> emit GeoParquet.",
+      "filePatternTriggers": ["**/*terrain*", "**/*dem*", "**/*slope*", "**/*aspect*"]
     },
     {
       "name": "stac-discover-analyze",

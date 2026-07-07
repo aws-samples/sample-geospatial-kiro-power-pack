@@ -135,6 +135,12 @@ class GeoFormatsServer(BaseGeoServer):
     ) -> FormatResult:
         """Convert vector ``src`` to GeoParquet at ``dst_href`` (Req 8.5, 12.3).
 
+        ``src`` accepts any of: an inline GeoJSON ``FeatureCollection`` (features
+        with geometry + properties), an equivalent GeoJSON mapping, or a **path
+        to an existing ``.geojson``/``.json`` or ``.parquet`` file** — so a large
+        vector produced by an earlier step can be referenced by path instead of
+        pasted inline.
+
         Validation errors for malformed input propagate unchanged; on a write
         failure the conversion aborts, removes any partial output, and raises a
         taxonomy error (Requirement 12.7).

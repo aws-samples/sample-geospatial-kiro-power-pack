@@ -5,7 +5,7 @@ Feature: geospatial-power-pack, Property 14: Zonal statistics equal a reference 
 Validates: Requirements 8.7, 8.8
 
 *For any* raster and any set of vector zones, each requested statistic
-(minimum, maximum, mean, sum, count) computed by
+(minimum, maximum, mean, sum, count, population standard deviation) computed by
 :func:`geo_raster.compute_zonal_statistics` equals the value computed by a
 straightforward reference implementation over the raster cells whose center
 overlaps the zone, and a zone with no overlapping cells yields a no-data
@@ -48,7 +48,7 @@ from geo_raster import (
     compute_zonal_statistics,
 )
 
-STAT_NAMES: Tuple[str, ...] = ("min", "max", "mean", "sum", "count")
+STAT_NAMES: Tuple[str, ...] = ("min", "max", "mean", "sum", "count", "std")
 Rect = Tuple[float, float, float, float]
 
 
@@ -93,12 +93,14 @@ def _reference(grid: RasterGrid, rect: Rect, stats: List[str]) -> Dict[str, Opti
                 values.append(value)
     if not values:
         return {name: None for name in stats}
+    mean = sum(values) / len(values)
     reduced = {
         "min": float(min(values)),
         "max": float(max(values)),
         "sum": float(sum(values)),
-        "mean": sum(values) / len(values),
+        "mean": mean,
         "count": float(len(values)),
+        "std": (sum((value - mean) ** 2 for value in values) / len(values)) ** 0.5,
     }
     return {name: reduced[name] for name in stats}
 

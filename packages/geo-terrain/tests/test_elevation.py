@@ -336,6 +336,7 @@ def test_server_registers_elevation_tool():
     assert server.pillar == "A"
     assert "elevation" in server.tool_names()
     assert "slope" in server.tool_names()
+    assert "aspect" in server.tool_names()
     assert "hillshade" in server.tool_names()
     assert set(server.sources) == {"srtm", "3dep"}
 
@@ -368,6 +369,24 @@ async def test_hillshade_over_extent_returns_0_255_grid():
     assert all(0 <= v <= 255 for row in result.values for v in row if v is not None)
 
 
+async def test_aspect_over_extent_returns_degrees_grid():
+    server = _server(_results_handler(lambda pts: [float(i) for i in range(len(pts))]))
+    try:
+        result = await server.aspect(
+            location={"bbox": SMALL_BBOX, "width": 3, "height": 3}
+        )
+    finally:
+        await server.aclose()
+    assert isinstance(result, RasterArray)
+    assert result.width == 3 and result.height == 3
+    assert result.units == "degrees"
+    # Aspect is either -1 (flat) or a compass bearing in [0, 360).
+    for row in result.values:
+        for v in row:
+            if v is not None:
+                assert v == -1.0 or (0.0 <= v < 360.0)
+
+
 async def test_slope_rejects_point_location():
     server = _server(_results_handler([10.0]))
     try:
@@ -391,7 +410,7 @@ async def test_hillshade_rejects_out_of_range_azimuth():
 def test_catalog_entry_names_geo_terrain_as_open_provider():
     server = GeoTerrainServer()
     entries = server.catalog_entries()
-    assert len(entries) == 3
+    assert len(entries) == 5
     entry = next(e for e in entries if e.name == "elevation")
     assert entry.name == "elevation"
     assert entry.pillar == "A"

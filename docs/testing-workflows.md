@@ -234,6 +234,7 @@ pip install -e ./packages/geo-formats \
 | P29 | "Validate that /tmp/out.parquet is valid GeoParquet." | `geo-formats` `validate_format` | `valid: true`; `geometry` column + `has_geo_metadata: true` |
 | P30 | "Read an 8×8 pixel window at col 0, row 0 from this COG: `https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/10/S/EG/2024/1/S2A_10SEG_20240104_0_L2A/B04.tif`" | `geo-raster` `read_window` | An 8×8 `RasterArray`, `dtype` `uint16`, band `[1]` |
 | P31 | "Run band math `B1 / 10000` over a 4×4 window at col 0, row 0 of that same COG." | `geo-raster` `band_math` | A 4×4 array of reflectance-scaled values (~0.01) |
+| P31b | "Run zonal band math NDVI `(B08 - B04) / (B08 + B04)`, binding B08 to `https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/11/S/KV/2026/6/S2B_11SKV_20260614_0_L2A/B08.tif` and B04 to the sibling `.../B04.tif`, over this EPSG:32611 zone: `{\"type\":\"Polygon\",\"coordinates\":[[[247089.7,3921520.3],[247543.8,3921507.5],[247559.4,3922062.2],[247105.3,3922075.0],[247089.7,3921520.3]]]}`" | `geo-raster` `zonal_band_math` | One zone with `min`/`max`/`mean`/`sum`/`count` over true per-pixel NDVI (~2,500 px; mean ≈ 0.2, `no_data: false`) — NIR and Red are **separate** COGs |
 
 **Guard checks**
 
@@ -242,12 +243,17 @@ pip install -e ./packages/geo-formats \
 | P32 | "Run band math `b1 * 2` (lowercase) over that COG window." | A **validation error**: bands must be `B<n>` (e.g. `B1`) |
 | P33 | "Read the point cloud /tmp/does-not-exist.copc." | A **not-found** error |
 | P34 | "Validate that /tmp/out.parquet is a valid COG." | `valid: false` with a reason (it's GeoParquet) — a clean negative |
+| P34b | "Run the same zonal band math NDVI but bind **only** B08 (omit the B04 asset)." | A **validation error** naming `B4` (referenced band with no matching asset) — nothing computed |
 
-> **Notes.** `band_math` references bands as `B<n>` (capital B, 1-based).
-> `zonal_statistics` (also `geo-raster`) is omitted from the quick table because
-> its zone polygons must be in the raster's own CRS (UTM for a Sentinel-2 COG),
-> awkward to hand-write in chat. `read_window`/`band_math` issue real HTTP range
-> requests — a transient blip is an availability error.
+> **Notes.** `band_math` references bands as `B<n>` (capital B, 1-based), and
+> zero-padded tokens work (`B08`/`B04` as Sentinel-2 uses them). `zonal_band_math`
+> (P31b) computes a **true per-pixel** index (NDVI/NDWI/SAVI/EVI/… — any band-math
+> expression) across bands that live in **separate single-band COGs** and reduces
+> it to per-zone stats in one call; its zone polygons must be in the raster's own
+> CRS (EPSG:32611 for this tile), which is why P31b supplies a UTM polygon. Plain
+> `zonal_statistics` is omitted from the quick table for the same CRS reason.
+> `read_window`/`band_math`/`zonal_band_math` issue real HTTP range requests — a
+> transient blip is an availability error.
 
 ### Phase 5 — more open tools (no credentials)
 
@@ -260,6 +266,7 @@ servers — reconnect the affected ones. Live calls, so values vary.
 | P35 | "Reverse-geocode longitude -122.085, latitude 37.423." | `geo-geocode-route` `reverse_geocode` | A `label` near the Mountain View / Googleplex area (source `nominatim`) |
 | P36 | "Compute the slope over bbox -119.56,37.74,-119.54,37.76 (Sierra Nevada)." | `geo-terrain` `slope` | A grid of per-cell slopes in degrees (0–90); steep terrain reaches ~60° |
 | P37 | "Compute hillshade over bbox -119.56,37.74,-119.54,37.76 with the default sun azimuth/altitude." | `geo-terrain` `hillshade` | A grid of hillshade values (0–255) |
+| P37b | "Compute the aspect over bbox -119.56,37.74,-119.54,37.76 (Sierra Nevada)." | `geo-terrain` `aspect` | A grid of compass bearings in degrees (0–360, the downslope direction; -1 for flat cells) |
 | P38 | "Compute 5- and 10-minute driving isochrones from [-122.4194, 37.7749]." | `geo-geocode-route` `isochrone` | A GeoJSON `FeatureCollection` of reachability polygons, one per contour (via Valhalla) |
 | P39 | "Species occurrences for bbox -122.45,37.74,-122.39,37.80, taxon 'Aves', limit 5, source iNaturalist." | `geo-biodiversity` `species_occurrences` (iNaturalist) | Up to 5 iNaturalist records (`source: inaturalist`) |
 | P40 | "Weather observations at longitude -77.04, latitude 38.90 for the last 3 days, source nws." | `geo-weather-climate` `observations` (NWS) | Recent `api.weather.gov` station observations (empty for a non-US point or an old range) |
@@ -791,3 +798,38 @@ have all been exercised against real accounts; Phases 1–9 need no accounts. Th
 only remaining gaps are the two **entitlement-blocked** imagery paths above
 (the code reaches the provider; the account isn't licensed) plus the two
 optional native/third-party items — none of which are connector-code gaps.
+
+
+### Phase 8 — DEM-zonal + GeoAI read-then-embed (new tools)
+
+New tools added on existing servers (`geo-terrain.dem_zonal`,
+`geo-foundation-models.embed_asset` / `detect_change_from_assets` /
+`available_embedding_periods`). Reconnect the affected servers. The COG reads
+issue real HTTP range requests; embedding scores under the default backend are a
+deterministic stand-in (see the caveat), not calibrated measurements.
+
+| # | Prompt | Exercises | Expect |
+|---|--------|-----------|--------|
+| P50 | "Per-zone mean/min/max **elevation** from the Copernicus GLO-30 DEM `s3://copernicus-dem-30m/Copernicus_DSM_COG_10_N37_00_W120_00_DEM/Copernicus_DSM_COG_10_N37_00_W120_00_DEM.tif` over an EPSG:4326 polygon inside that 1°×1° tile (e.g. a small box around -119.55, 37.75)." | `geo-terrain` `dem_zonal` (elevation) | One zone with `min`/`max`/`mean`/`count` in metres; Sierra terrain gives hundreds–thousands of m, `no_data: false` |
+| P51 | "Per-zone mean **slope** over the same DEM + polygon, passing `pixel_size_m` for the ~30 m cell (GLO-30 is degrees)." | `geo-terrain` `dem_zonal` (slope) | Per-zone slope stats in degrees (0–90) |
+| P52 | "Embed the Sentinel-2 B04 COG `https://sentinel-cogs.s3.us-west-2.amazonaws.com/sentinel-s2-l2a-cogs/11/S/KV/2026/6/S2B_11SKV_20260614_0_L2A/B04.tif` over EPSG:32611 bbox 247089,3921520,247560,3922075 with model Clay." | `geo-foundation-models` `embed_asset` | An `EmbeddingResult`: model `Clay`, `structure_only: false`, `backend: deterministic-local`, vector length = model dimension |
+| P53 | "Detect change between the June-2024 and June-2026 B04 COGs of tile 11SKV over that same bbox with model Clay." | `geo-foundation-models` `detect_change_from_assets` | An `AssetChangeResult` with `change` in [0,1] and a `caveat` that the stand-in score is not calibrated |
+| P54 | "List the available embedding periods." | `geo-foundation-models` `available_embedding_periods` | The published Clay v1.5 months (e.g. `2024-06`, `2025-06`) — deterministic, no network |
+
+**Guard checks**
+
+| # | Prompt | Expect |
+|---|--------|--------|
+| P55 | "Run dem_zonal with measure `curvature`." | A **validation error** naming `measure` (use elevation/slope/aspect) |
+| P56 | "embed_asset with a window_bbox far outside the asset." | A **validation error**: the window does not overlap the asset |
+
+> **Notes.** `dem_zonal` takes either `dem_href` (a specific COG, as in P50) or a
+> named `dem_source` (e.g. `dem_source="glo30"` for Copernicus GLO-30, whose
+> overlapping tiles are resolved and mosaicked automatically — handy when a zone
+> straddles a 1° tile boundary). Zones must be in the DEM's CRS (GLO-30 is
+> EPSG:4326); `slope`/`aspect` need ground cell size, so pass `pixel_size_m` for a
+> degrees
+> DEM. `embed_asset`/`detect_change_from_assets` read the COG window server-side
+> so you pass an href + bbox instead of inline pixels. Change scores are only
+> calibrated with a real-weight backend — the default deterministic stand-in
+> scores any two differing windows ~0.5 and sets a `caveat` saying so.

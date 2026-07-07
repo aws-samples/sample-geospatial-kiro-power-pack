@@ -19,14 +19,17 @@ from geo_foundation_models.embedding import (
     validate_tile,
 )
 from geo_foundation_models.change import detect_change
+from geo_foundation_models.asset_embedding import detect_change_from_assets, embed_asset
 from geo_foundation_models.segmentation import SAMGEO_MODEL_NAME, segment
 from geo_foundation_models.clay_embeddings import (
     CLAY_V15_DIMENSION,
     CLAY_V15_MODEL_NAME,
+    available_periods,
     lookup_embeddings,
 )
 from geo_foundation_models.models import (
     MAX_TILE_DIMENSION,
+    AssetChangeResult,
     EmbeddingMetadata,
     EmbeddingRecord,
     EmbeddingResult,
@@ -41,6 +44,7 @@ __all__ = [
     "RasterTile",
     "ModelSpec",
     "EmbeddingResult",
+    "AssetChangeResult",
     "EmbeddingMetadata",
     "EmbeddingRecord",
     "SegmentationMask",
@@ -57,8 +61,12 @@ __all__ = [
     "detect_change",
     "segment",
     "SAMGEO_MODEL_NAME",
+    # Read-then-embed bridges
+    "embed_asset",
+    "detect_change_from_assets",
     # Open Clay v1.5 embedding lookup (LGND / Source Cooperative)
     "lookup_embeddings",
+    "available_periods",
     "CLAY_V15_DIMENSION",
     "CLAY_V15_MODEL_NAME",
     # Server

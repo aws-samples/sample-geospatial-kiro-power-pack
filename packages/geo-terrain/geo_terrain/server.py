@@ -21,7 +21,11 @@ from geo_common.models import (
 )
 from geo_common.server import BaseGeoServer
 
+from geo_common.raster_models import FeatureCollection, ZoneStat
+
+from geo_terrain.dem_zonal import dem_zonal as _dem_zonal
 from geo_terrain.derivatives import (
+    compute_aspect,
     compute_hillshade,
     compute_slope,
     meters_per_degree,
@@ -81,7 +85,9 @@ class GeoTerrainServer(BaseGeoServer):
         self.default_source = default_source
         self.register_tool("elevation", self.elevation)
         self.register_tool("slope", self.slope)
+        self.register_tool("aspect", self.aspect)
         self.register_tool("hillshade", self.hillshade)
+        self.register_tool("dem_zonal", self.dem_zonal)
 
     def catalog_entries(self) -> List[CatalogEntry]:
         """Register ``geo-terrain``'s capability in the Resource Catalog.
@@ -119,12 +125,38 @@ class GeoTerrainServer(BaseGeoServer):
                 install_command=INSTALL_COMMAND,
             ),
             CatalogEntry(
+                name="aspect",
+                pillar=self.pillar,
+                capability_description=(
+                    "Compute per-cell aspect (compass degrees 0-360, the "
+                    "downslope direction; -1 for flat) over an extent from a "
+                    "configured terrain source's elevation grid."
+                ),
+                openness_tier=OpennessTier.OPEN,
+                provider_server=self.server_name,
+                install_command=INSTALL_COMMAND,
+            ),
+            CatalogEntry(
                 name="hillshade",
                 pillar=self.pillar,
                 capability_description=(
                     "Compute shaded-relief (hillshade, 0-255) over an extent "
                     "from a configured terrain source's elevation grid, for a "
                     "given sun azimuth and altitude."
+                ),
+                openness_tier=OpennessTier.OPEN,
+                provider_server=self.server_name,
+                install_command=INSTALL_COMMAND,
+            ),
+            CatalogEntry(
+                name="dem_zonal",
+                pillar=self.pillar,
+                capability_description=(
+                    "Per-zone statistics (min/max/mean/sum/count/std) over a "
+                    "user-supplied DEM COG for elevation, slope, or aspect: "
+                    "reads only the tiles overlapping the vector zones by byte "
+                    "range, derives the surface, and reduces per zone. Zones "
+                    "must be in the DEM's CRS."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,
@@ -226,6 +258,26 @@ class GeoTerrainServer(BaseGeoServer):
             units="degrees",
         )
 
+    async def aspect(self, *, location: Any, source: Optional[str] = None) -> RasterArray:
+        """Per-cell aspect (compass degrees) over an extent from the DEM grid (Req 7.5).
+
+        Fetches the elevation grid for ``location`` (which must be an extent),
+        then computes aspect: the compass bearing of the downslope direction
+        (0 = north, 90 = east, 180 = south, 270 = west), with ``-1`` for flat
+        cells. Returns a :class:`RasterArray` with ``units='degrees'``.
+        """
+        grid = await self._elevation_grid(location, source)
+        cx, cy = self._cell_sizes_m(grid)
+        values = compute_aspect(grid.values, cellsize_x_m=cx, cellsize_y_m=cy)
+        return RasterArray(
+            values=values,
+            width=grid.width,
+            height=grid.height,
+            bbox=grid.bbox,
+            source=grid.source,
+            units="degrees",
+        )
+
     async def hillshade(
         self,
         *,
@@ -271,6 +323,38 @@ class GeoTerrainServer(BaseGeoServer):
             bbox=grid.bbox,
             source=grid.source,
             units="hillshade",
+        )
+
+    async def dem_zonal(
+        self,
+        *,
+        zones: FeatureCollection,
+        dem_href: Optional[str] = None,
+        dem_source: Optional[str] = None,
+        measure: str = "elevation",
+        stats: Optional[List[str]] = None,
+        band: int = 1,
+        pixel_size_m: Optional[List[float]] = None,
+    ) -> List[ZoneStat]:
+        """Per-zone elevation/slope/aspect over a DEM COG (byte-range read).
+
+        Supply exactly one of ``dem_href`` (a specific DEM COG) or ``dem_source``
+        (a named source such as ``"glo30"`` whose overlapping tiles are resolved
+        and mosaicked automatically). Reads only the DEM tiles overlapping
+        ``zones`` (which must be in the DEM's CRS), builds the requested
+        ``measure`` surface, and reduces it to one ``ZoneStat`` per zone.
+        ``slope``/``aspect`` use the DEM's pixel size (or ``pixel_size_m`` metres)
+        for the gradient.
+        """
+        return await _dem_zonal(
+            dem_href=dem_href,
+            dem_source=dem_source,
+            zones=zones,
+            measure=measure,
+            stats=stats,
+            band=band,
+            pixel_size_m=pixel_size_m,
+            http=self.http,
         )
 
 

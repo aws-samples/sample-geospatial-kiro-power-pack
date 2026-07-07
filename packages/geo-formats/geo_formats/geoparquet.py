@@ -2,10 +2,14 @@
 
 This module holds :func:`to_geoparquet`, the engine behind ``geo-formats``'s
 ``to_geoparquet`` MCP tool. It accepts a vector dataset — either an in-memory
-GeoJSON :class:`~geo_formats.models.FeatureCollection` (or equivalent mapping)
-or a path to an existing ``.geojson``/``.parquet`` source — and writes a
-**GeoParquet** file to ``dst_href`` via GeoPandas (which embeds the GeoParquet
-``geo`` metadata and stores geometries as WKB).
+GeoJSON :class:`~geo_formats.models.FeatureCollection` (or equivalent mapping),
+a local path to an existing ``.geojson``/``.parquet`` source, or a **remote
+href** (``s3://``, ``gs://``, ``https://`` …) when the optional ``remote`` extra
+is installed — and writes a **GeoParquet** file to ``dst_href`` via GeoPandas
+(which embeds the GeoParquet ``geo`` metadata and stores geometries as WKB).
+
+Accepting a path/href (not just inline features) lets a large vector produced by
+an earlier step be referenced by location instead of pasted inline.
 
 The conversion is exact: converting a vector dataset to GeoParquet and reading
 it back preserves the feature count, the geometries coordinate-for-coordinate,
@@ -160,8 +164,33 @@ def _materialize_features(features: List[Dict[str, Any]], *, source: str):
     return geometries, records
 
 
+#: URI schemes read from remote object stores (via the optional ``remote`` extra)
+#: rather than the local filesystem.
+_REMOTE_SCHEMES = ("s3://", "gs://", "gcs://", "http://", "https://", "az://", "abfs://")
+
+
+def _is_remote(path: str) -> bool:
+    """Whether ``path`` is a remote object-store/URL href rather than a local path."""
+    lowered = path.lower()
+    return any(lowered.startswith(scheme) for scheme in _REMOTE_SCHEMES)
+
+
+def _extension(path: str) -> str:
+    """Lowercased file extension of ``path``, ignoring any URL query string."""
+    return path.split("?", 1)[0].lower()
+
+
 def _read_path(path: str, *, source: str):
-    """Read an existing ``.parquet`` or ``.geojson``/``.json`` source path."""
+    """Read an existing ``.parquet``/``.geojson``/``.json`` source (local or remote).
+
+    Local paths are read directly. Remote hrefs (``s3://``, ``gs://``,
+    ``https://`` …) are read via geopandas/fsspec, which needs the optional
+    ``remote`` extra (``geo-formats[remote]``); a missing backend raises a clear
+    validation error telling the caller what to install.
+    """
+    if _is_remote(path):
+        return _read_remote(path, source=source)
+
     import geopandas as gpd
 
     if not os.path.exists(path):
@@ -169,7 +198,7 @@ def _read_path(path: str, *, source: str):
             "source path %r does not exist" % path, source=source,
             detail={"parameter": "src", "src": path},
         )
-    lower = path.lower()
+    lower = _extension(path)
     try:
         if lower.endswith(".parquet"):
             return gpd.read_parquet(path)
@@ -193,6 +222,48 @@ def _read_path(path: str, *, source: str):
         source=source,
         detail={"parameter": "src", "src": path},
     )
+
+
+def _read_remote(path: str, *, source: str):
+    """Read a remote vector href via geopandas/fsspec (optional ``remote`` extra)."""
+    import geopandas as gpd
+
+    lower = _extension(path)
+    if not (lower.endswith(".parquet") or lower.endswith(".geojson") or lower.endswith(".json")):
+        raise ValidationError(
+            "unsupported source extension for %r (expected .parquet/.geojson/.json)"
+            % path,
+            source=source,
+            detail={"parameter": "src", "src": path},
+        )
+    try:
+        if lower.endswith(".parquet"):
+            return gpd.read_parquet(path)
+        import fsspec  # local import: only needed for remote text reads
+
+        with fsspec.open(path, "r") as fh:
+            mapping = json.load(fh)
+        return _to_geodataframe(mapping, crs=None, source=source)
+    except GeoError:
+        raise
+    except ImportError as exc:
+        raise ValidationError(
+            "reading a remote source %r needs the optional 'remote' extra "
+            "(install geo-formats[remote]); missing backend: %s"
+            % (path, getattr(exc, "name", None) or str(exc)),
+            source=source,
+            detail={"parameter": "src", "src": path},
+            original=str(exc),
+        ) from exc
+    except Exception as exc:
+        raise ValidationError(
+            "could not read remote vector source %r: %s "
+            "(remote reads need geo-formats[remote] and valid credentials)"
+            % (path, str(exc) or type(exc).__name__),
+            source=source,
+            detail={"parameter": "src", "src": path},
+            original=str(exc) or type(exc).__name__,
+        ) from exc
 
 
 def _remove_partial(dst_href: str, *, existed_before: bool) -> None:

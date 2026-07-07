@@ -17,7 +17,8 @@ per zone and a no-data indication for zones that do not overlap the raster.
 
 - Provider tools: `geo-raster.zonal_statistics`, `geo-ops.transform_crs`,
   `geo-formats.to_geoparquet`
-- Requirements: 8.7 (per-zone min/max/mean/sum/count), 8.8 (no-data zones still
+- Requirements: 8.7 (per-zone min/max/mean/sum/count, plus `std` population
+  standard deviation), 8.8 (no-data zones still
   return; other zones unaffected), 8.1 (CRS transform), 12.3 (tabular vector
   output is GeoParquet), Property 14 (statistics equal a reference computation)
 - Related skills: `crs-handling`, `cloud-optimized-formats`
@@ -45,7 +46,8 @@ when the triggering file no longer matches.
 1. **Load inputs.** Resolve the raster href and the vector zones
    (`FeatureCollection`). Read the raster via S3 byte ranges where possible
    rather than copying the full asset (Requirement 12.1). Confirm the requested
-   statistics (default: `min`, `max`, `mean`, `sum`, `count`).
+   statistics (default: `min`, `max`, `mean`, `sum`, `count`; `std` is also
+   supported as an opt-in population standard deviation).
 2. **Align CRS.** Compare the raster CRS and the zones CRS. If they differ,
    reproject the zones to the raster CRS with
    `geo-ops.transform_crs(geometry=..., src_crs=zones_crs, dst_crs=raster_crs)`
@@ -68,3 +70,11 @@ when the triggering file no longer matches.
   reproject explicitly and keep axis order correct (`crs-handling` skill).
 - Validate inputs first: a malformed raster/zone geometry must yield an
   `Error_Taxonomy` validation error with no partial output.
+- Performance: the default engine is pure-Python (dependency-light). Installing
+  the optional `geo-raster[fast]` extra enables a numpy-accelerated zonal engine
+  (same results, verified by a differential test) that is markedly faster on
+  larger windows and many-zone requests — worthwhile for interactive and
+  mid-size work.
+- Scale boundary: for planetary-scale zonal statistics (very large rasters or
+  huge zone sets), do not push the single-process engine — route the job through
+  `aws-geo-compute` (`large-zonal-statistics` → Amazon EMR with Apache Sedona).

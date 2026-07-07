@@ -44,7 +44,15 @@ from geo_foundation_models.server import (
     GeoFoundationModelsServer,
 )
 
-EXPECTED_TOOLS = {"embed_tile", "detect_change", "segment", "lookup_embeddings"}
+EXPECTED_TOOLS = {
+    "embed_tile",
+    "embed_asset",
+    "detect_change",
+    "detect_change_from_assets",
+    "segment",
+    "lookup_embeddings",
+    "available_embedding_periods",
+}
 
 
 def _tile(width: int = 8, height: int = 8, bands: int = 1, fmt: str = "GTiff", data=None) -> RasterTile:

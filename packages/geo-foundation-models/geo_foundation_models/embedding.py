@@ -366,4 +366,5 @@ def embed_tile(
         dimension=spec.dimension,
         vector=vector,
         backend=getattr(eng, "backend_id", "unknown"),
+        structure_only=tile.data is None,
     )

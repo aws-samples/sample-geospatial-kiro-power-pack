@@ -32,7 +32,25 @@ from geo_common.errors import (
     UpstreamError,
     ValidationError,
 )
+from geo_common.cog import (
+    DEFAULT_S3_REGION,
+    ByteRangeReader,
+    CogMetadata,
+    CogReader,
+    HttpRangeReader,
+)
 from geo_common.http import HttpClient
+from geo_common.raster_models import (
+    DEFAULT_STATISTICS,
+    SUPPORTED_STATISTICS,
+    Feature,
+    FeatureCollection,
+    GeoJSONGeometry,
+    RasterGrid,
+    ZoneStat,
+)
+from geo_common.raster_read import read_raster_grid
+from geo_common.zonal import compute_zonal_statistics
 from geo_common.models import (
     CatalogEntry,
     CredentialClassification,
@@ -66,6 +84,23 @@ __all__ = [
     "backoff_schedule",
     # Async HTTP client (Req 5.1, 5.4, 5.6, 5.7, 5.9)
     "HttpClient",
+    # Shared byte-range COG reader (usable by any server; no cross-server dep)
+    "ByteRangeReader",
+    "CogMetadata",
+    "CogReader",
+    "HttpRangeReader",
+    "DEFAULT_S3_REGION",
+    # Shared raster grid + vector-zone models and the zonal reducer (usable by
+    # any server; no cross-server dependency)
+    "RasterGrid",
+    "Feature",
+    "FeatureCollection",
+    "GeoJSONGeometry",
+    "ZoneStat",
+    "SUPPORTED_STATISTICS",
+    "DEFAULT_STATISTICS",
+    "compute_zonal_statistics",
+    "read_raster_grid",
     # Shared base-contract models (Req 2.1, 11.3, 16.1)
     "OpennessTier",
     "CredentialClassification",

@@ -149,15 +149,31 @@ def _pydantic_schema_for_hint(hint: Any) -> "tuple[Dict[str, Any] | None, Dict[s
     origin = typing.get_origin(hint)
     args = typing.get_args(hint)
 
-    # Optional[Model] / Union[...]: use the first member that yields a schema.
+    # Optional[Model] / Union[...]: build a schema for every (non-None) member.
+    # A single meaningful member (e.g. ``Optional[Model]``) collapses to that
+    # member's schema; a genuine multi-type union (e.g.
+    # ``Union[FeatureCollection, dict, str]``) becomes an ``anyOf`` so the MCP
+    # client sees *every* accepted form — not just the first — and can pass, say,
+    # a path string where before only the inline model was advertised.
     if origin is typing.Union:
+        sub_schemas: List[Dict[str, Any]] = []
+        merged_defs: Dict[str, Any] = {}
         for member in args:
             if member is type(None):
                 continue
             schema, defs = _pydantic_schema_for_hint(member)
-            if schema is not None:
-                return schema, defs
-        return None, {}
+            if schema is None:
+                json_type = _annotation_to_json_type(member)
+                schema = {"type": json_type} if json_type is not None else None
+                defs = {}
+            if schema is not None and schema not in sub_schemas:
+                sub_schemas.append(schema)
+                merged_defs.update(defs)
+        if not sub_schemas:
+            return None, {}
+        if len(sub_schemas) == 1:
+            return sub_schemas[0], merged_defs
+        return {"anyOf": sub_schemas}, merged_defs
 
     # list[Model] / tuple[Model, ...]: an array whose items are the model schema.
     if origin in (list, tuple) and args:

@@ -43,7 +43,12 @@ def _manifest_entry() -> Dict[str, Any]:
 def test_catalog_entries_register_geo_raster_as_open_provider() -> None:
     """Req 2.1 / 2.6: the capabilities register Open, naming geo-raster."""
     entries = GeoRasterServer().catalog_entries()
-    assert {e.name for e in entries} == {"zonal_statistics", "read_window", "band_math"}
+    assert {e.name for e in entries} == {
+        "zonal_statistics",
+        "read_window",
+        "band_math",
+        "zonal_band_math",
+    }
     for entry in entries:
         assert entry.pillar == "B"
         assert entry.provider_server == "geo-raster"
