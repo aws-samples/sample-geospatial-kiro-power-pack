@@ -207,11 +207,14 @@ class GeoFoundationModelsServer(BaseGeoServer):
                 name="detect_change_from_assets",
                 pillar=self.pillar,
                 capability_description=(
-                    "Change between two COG hrefs over the same window+bands in "
-                    "one call: read+embed each server-side, then compare. "
-                    "Returns the [0,1] measure with backend provenance and a "
-                    "'caveat' whenever it is not calibrated (deterministic "
-                    "stand-in or structure-only read)."
+                    "Change between two dates over the same window in ONE call: "
+                    "read+embed each server-side, then compare — no passing a "
+                    "1024-float vector by hand. Two input modes: single "
+                    "multi-band COG per date (raster_href_a/b + bands), or "
+                    "separate single-band COGs per date (assets_a/assets_b, "
+                    "e.g. Earth Search's per-band .tifs). Returns the [0,1] "
+                    "measure with backend provenance and a 'caveat' whenever it "
+                    "is not calibrated (deterministic stand-in / structure-only)."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,
@@ -382,22 +385,30 @@ class GeoFoundationModelsServer(BaseGeoServer):
     async def detect_change_from_assets(
         self,
         *,
-        raster_href_a: str,
-        raster_href_b: str,
         model: str,
+        raster_href_a: Optional[str] = None,
+        raster_href_b: Optional[str] = None,
+        assets_a: Optional[List[str]] = None,
+        assets_b: Optional[List[str]] = None,
         window_bbox: Optional[List[float]] = None,
         bands: Optional[List[int]] = None,
     ) -> AssetChangeResult:
-        """Change between two COG hrefs over the same window, in one call.
+        """Change between two dates over the same window, in one call.
 
-        Reads+embeds the same ``window_bbox``/``bands`` of both assets, then
-        returns the ``detect_change`` measure with backend provenance and a
-        ``caveat`` when the score is not calibrated (deterministic stand-in or a
-        structure-only read).
+        Supply exactly one input mode: **single multi-band COG per date**
+        (``raster_href_a``/``raster_href_b`` + ``bands``), or **separate
+        single-band COGs per date** (``assets_a``/``assets_b`` — ordered per-band
+        href lists, e.g. Sentinel-2 on Earth Search). Both dates are read+embedded
+        server-side over the same ``window_bbox`` and compared, so no 1024-float
+        vector is ever passed by hand. Returns the ``detect_change`` measure with
+        backend provenance and a ``caveat`` when the score is not calibrated
+        (deterministic stand-in or a structure-only read).
         """
         return await _detect_change_from_assets(
             raster_href_a=raster_href_a,
             raster_href_b=raster_href_b,
+            assets_a=assets_a,
+            assets_b=assets_b,
             model=model,
             window_bbox=window_bbox,
             bands=tuple(bands) if bands else (1,),

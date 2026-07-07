@@ -98,12 +98,15 @@ band order — instead of pre-stacking. Optional `latlon`/`acquired` on
 
 ## Notes
 
-- **Prefer the one-call bridge.** When the two dates are COGs (e.g. Sentinel-2
-  scenes), `detect_change_from_assets(raster_href_a=..., raster_href_b=...,
-  model=..., window_bbox=..., bands=...)` reads both windows server-side and
-  returns the measure in a single call — no inline pixel plumbing. Use
-  `embed_asset` for a single date. Fall back to `embed_tile`/`detect_change`
-  only when you already hold the pixels.
+- **Prefer the one-call bridge.** `detect_change_from_assets` reads both dates
+  server-side and returns the measure in a single call — no inline pixels, and
+  no carrying a 1024-float vector between tools. It takes **either** single
+  multi-band COGs per date (`raster_href_a=..., raster_href_b=..., bands=...`)
+  **or** separate single-band COGs per date
+  (`assets_a=[b1,b2,...], assets_b=[b1,b2,...]`, ordered in band order, e.g.
+  Sentinel-2 on Earth Search). Use `embed_asset`/`embed_assets` to embed a single
+  date; fall back to `embed_tile`/`detect_change` only when you already hold the
+  pixels/vectors.
 - **Honesty gate.** The default backend is a deterministic stand-in with no
   semantic structure: any two differing windows score ~0.5, and two
   structure-only (no-pixel) tiles score exactly 0.0. Treat a score as a real,

@@ -210,6 +210,61 @@ async def test_detect_change_from_identical_assets_is_zero_with_caveat() -> None
     assert result.caveat is not None and "calibrated" in result.caveat.lower()
 
 
+async def test_detect_change_from_assets_per_band_lists_identical_is_zero() -> None:
+    """Per-band asset-list mode: identical dates score exactly 0.0, one call."""
+    b1 = [i for i in range(16)]
+    b2 = [i + 100 for i in range(16)]
+    result = await detect_change_from_assets(
+        model="Clay",
+        assets_a=["s3://b/a_B1.tif", "s3://b/a_B2.tif"],
+        assets_b=["s3://b/b_B1.tif", "s3://b/b_B2.tif"],
+        readers_a=[RecordingByteRangeReader(_cog(b1)), RecordingByteRangeReader(_cog(b2))],
+        readers_b=[RecordingByteRangeReader(_cog(b1)), RecordingByteRangeReader(_cog(b2))],
+    )
+    assert result.change == 0.0
+    assert result.structure_only is False
+    assert result.caveat is not None  # stand-in backend -> not calibrated
+
+
+async def test_detect_change_from_assets_per_band_lists_matches_single_href() -> None:
+    """Per-band lists give the same score as the equivalent multi-band COGs."""
+    a1, a2 = list(range(16)), [v + 10 for v in range(16)]
+    b1, b2 = [v + 3 for v in range(16)], [v + 40 for v in range(16)]
+    multi_a = build_cog(width=4, height=4, tile_width=2, tile_height=2,
+                        bands=[a1, a2], dtype="uint16", geotransform=_GT)
+    multi_b = build_cog(width=4, height=4, tile_width=2, tile_height=2,
+                        bands=[b1, b2], dtype="uint16", geotransform=_GT)
+    from_lists = await detect_change_from_assets(
+        model="Clay",
+        assets_a=["s3://b/a1.tif", "s3://b/a2.tif"],
+        assets_b=["s3://b/b1.tif", "s3://b/b2.tif"],
+        readers_a=[RecordingByteRangeReader(_cog(a1)), RecordingByteRangeReader(_cog(a2))],
+        readers_b=[RecordingByteRangeReader(_cog(b1)), RecordingByteRangeReader(_cog(b2))],
+    )
+    from_single = await detect_change_from_assets(
+        model="Clay", raster_href_a="s3://b/ma.tif", raster_href_b="s3://b/mb.tif",
+        bands=[1, 2],
+        readers={"a": RecordingByteRangeReader(multi_a), "b": RecordingByteRangeReader(multi_b)},
+    )
+    assert from_lists.change == from_single.change
+
+
+async def test_detect_change_from_assets_rejects_mixed_modes() -> None:
+    with pytest.raises(ValidationError):
+        await detect_change_from_assets(
+            model="Clay", raster_href_a="s3://b/a.tif",
+            assets_b=["s3://b/b1.tif"],
+        )
+
+
+async def test_detect_change_from_assets_requires_two_dates() -> None:
+    with pytest.raises(ValidationError):
+        await detect_change_from_assets(model="Clay")
+    with pytest.raises(ValidationError) as exc:
+        await detect_change_from_assets(model="Clay", assets_a=["s3://b/a1.tif"])
+    assert exc.value.detail.get("parameter") == "assets_b"
+
+
 async def test_detect_change_from_different_assets_scores_midrange() -> None:
     rng = random.Random(3)
     a = [rng.randint(0, 255) for _ in range(16)]

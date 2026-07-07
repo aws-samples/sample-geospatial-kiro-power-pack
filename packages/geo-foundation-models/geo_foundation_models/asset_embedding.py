@@ -285,9 +285,11 @@ def _aligned(gt_a, gt_b) -> bool:
 
 async def detect_change_from_assets(
     *,
-    raster_href_a: str,
-    raster_href_b: str,
     model: str,
+    raster_href_a: Optional[str] = None,
+    raster_href_b: Optional[str] = None,
+    assets_a: Optional[Sequence[str]] = None,
+    assets_b: Optional[Sequence[str]] = None,
     window_bbox: Optional[Sequence[float]] = None,
     bands: object = (1,),
     tile_format: str = "GTiff",
@@ -296,33 +298,90 @@ async def detect_change_from_assets(
     http: Optional[HttpClient] = None,
     region: str = DEFAULT_S3_REGION,
     readers: Optional["dict"] = None,
+    readers_a: Optional[Sequence[ByteRangeReader]] = None,
+    readers_b: Optional[Sequence[ByteRangeReader]] = None,
     supported_formats=DEFAULT_SUPPORTED_FORMATS,
     max_dimension: int = MAX_TILE_DIMENSION,
 ) -> AssetChangeResult:
-    """Embed the same window of two assets and return their change measure.
+    """Embed the same window of two dates server-side and return their change.
 
-    Reads the same ``window_bbox`` / ``bands`` from both ``raster_href_a`` and
-    ``raster_href_b``, embeds each with ``model``, and returns the
-    :func:`detect_change` measure plus provenance. ``caveat`` is set whenever the
-    score is not a calibrated measurement (the deterministic stand-in backend or
-    a structure-only read), so a ~0.5 is never mistaken for a real result.
+    Two input modes (supply exactly one), so the whole "embed both dates +
+    compare" flow is a single MCP call — no hand-carrying a 1024-float vector
+    between tools:
+
+    * **single multi-band COG per date** — ``raster_href_a`` / ``raster_href_b``
+      (+ ``bands``), each read via :func:`embed_asset`; or
+    * **separate single-band COGs per date** — ``assets_a`` / ``assets_b``, each
+      an ordered list of per-band hrefs (e.g. Sentinel-2 on Earth Search) read
+      via :func:`embed_assets`.
+
+    Both dates are read over the same ``window_bbox`` and embedded with
+    ``model``; returns the :func:`detect_change` measure plus provenance.
+    ``caveat`` is set whenever the score is not a calibrated measurement (the
+    deterministic stand-in backend or a structure-only read), so a ~0.5 is never
+    mistaken for a real result.
 
     ``readers`` (test-only) maps ``"a"``/``"b"`` to a pre-built
-    :class:`ByteRangeReader` for in-memory assets.
+    :class:`ByteRangeReader` for the single-href mode; ``readers_a`` /
+    ``readers_b`` are positional reader lists for the asset-list mode.
     """
-    readers = readers or {}
-    ea = await embed_asset(
-        raster_href=raster_href_a, model=model, window_bbox=window_bbox, bands=bands,
-        tile_format=tile_format, registry=registry, backend=backend, http=http,
-        region=region, reader=readers.get("a"), supported_formats=supported_formats,
-        max_dimension=max_dimension,
-    )
-    eb = await embed_asset(
-        raster_href=raster_href_b, model=model, window_bbox=window_bbox, bands=bands,
-        tile_format=tile_format, registry=registry, backend=backend, http=http,
-        region=region, reader=readers.get("b"), supported_formats=supported_formats,
-        max_dimension=max_dimension,
-    )
+    single = raster_href_a is not None or raster_href_b is not None
+    multi = assets_a is not None or assets_b is not None
+    if single and multi:
+        raise ValidationError(
+            "provide either raster_href_a/raster_href_b (single multi-band COGs) "
+            "or assets_a/assets_b (per-band single-band COG lists), not both",
+            source=_SOURCE,
+            detail={"parameter": "assets_a"},
+        )
+    if not single and not multi:
+        raise ValidationError(
+            "provide two dates: raster_href_a + raster_href_b, or assets_a + "
+            "assets_b",
+            source=_SOURCE,
+            detail={"parameter": "raster_href_a"},
+        )
+
+    if multi:
+        if assets_a is None or assets_b is None:
+            raise ValidationError(
+                "both assets_a and assets_b are required in the per-band mode",
+                source=_SOURCE,
+                detail={"parameter": "assets_b"},
+            )
+        ea = await embed_assets(
+            assets=assets_a, model=model, window_bbox=window_bbox,
+            tile_format=tile_format, registry=registry, backend=backend, http=http,
+            region=region, readers=readers_a, supported_formats=supported_formats,
+            max_dimension=max_dimension,
+        )
+        eb = await embed_assets(
+            assets=assets_b, model=model, window_bbox=window_bbox,
+            tile_format=tile_format, registry=registry, backend=backend, http=http,
+            region=region, readers=readers_b, supported_formats=supported_formats,
+            max_dimension=max_dimension,
+        )
+    else:
+        if raster_href_a is None or raster_href_b is None:
+            raise ValidationError(
+                "both raster_href_a and raster_href_b are required in the "
+                "single-COG mode",
+                source=_SOURCE,
+                detail={"parameter": "raster_href_b"},
+            )
+        rd = readers or {}
+        ea = await embed_asset(
+            raster_href=raster_href_a, model=model, window_bbox=window_bbox, bands=bands,
+            tile_format=tile_format, registry=registry, backend=backend, http=http,
+            region=region, reader=rd.get("a"), supported_formats=supported_formats,
+            max_dimension=max_dimension,
+        )
+        eb = await embed_asset(
+            raster_href=raster_href_b, model=model, window_bbox=window_bbox, bands=bands,
+            tile_format=tile_format, registry=registry, backend=backend, http=http,
+            region=region, reader=rd.get("b"), supported_formats=supported_formats,
+            max_dimension=max_dimension,
+        )
     change = detect_change(ea.vector, eb.vector)
     structure_only = ea.structure_only or eb.structure_only
     caveat: Optional[str] = None
