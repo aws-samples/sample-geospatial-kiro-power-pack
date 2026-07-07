@@ -118,7 +118,7 @@ geospatial-kiro-power-pack/
 ## Capabilities map
 
 **21 packages** — the Power Hub, the `geo-common` shared base, and **19 MCP
-servers** exposing **46 tools** across Pillars A (data access), B
+servers** exposing **55 tools** across Pillars A (data access), B
 (processing/compute), and C (GeoAI), plus credentialed and peer-Power servers.
 Per-server credential keys are in the Credentials reference below.
 
@@ -129,18 +129,18 @@ Per-server credential keys are in the Credentials reference below.
 | 1 | `geo-stac` | A | Open | 2 | STAC search — single catalog (`stac_search`) and federated multi-catalog (`stac_search_multi`, round-robin merge across Earth Search, Planetary Computer, CMR-STAC, Copernicus, USGS) |
 | 2 | `geo-vector` | A | Open | 1 | vector features from OpenStreetMap (Overpass); optional configured Overture endpoint |
 | 3 | `geo-geocode-route` | A | Open / Free-Tier | 4 | geocode + reverse-geocode (Nominatim, Photon), routing (OSRM, Valhalla), isochrones (Valhalla); Amazon Location selectable via `source` (credentialed) |
-| 4 | `geo-terrain` | A | Open | 3 | elevation, slope, hillshade from SRTM (default) and USGS 3DEP (public OpenTopoData; endpoint/dataset overridable) |
+| 4 | `geo-terrain` | A | Open | 5 | elevation, slope, aspect, hillshade from SRTM (default) and USGS 3DEP (public OpenTopoData; endpoint/dataset overridable); `dem_zonal` — per-zone elevation/slope/aspect statistics over a DEM COG via byte-range reads, by `dem_href` or a named `dem_source` (`glo30` — Copernicus GLO-30; `3dep` — USGS 3DEP 1/3 arc-second, US; tiles auto-resolved and mosaicked) |
 | 5 | `geo-weather-climate` | A | Open / Free-Tier | 1 | observations from Open-Meteo (default), OpenAQ, NOAA/NWS; NOAA CDO (credentialed). ERA5 reanalysis is covered via the Open-Meteo archive, not a direct CDS client |
 | 6 | `geo-biodiversity` | A | Open | 1 | species occurrences from GBIF + iNaturalist; IUCN Red List conservation status (credentialed) |
 | 7 | `geo-ogc` | A | Open | 1 | fetch GeoJSON features from any OGC API - Features service (pygeoapi, GeoServer OGC API, ldproxy) by endpoint + collection |
-| 8 | `geo-ops` | B | Open | 6 | CRS transforms, geometry validation/ops, spatial join, overlay, buffer, convex hull (PyProj, Shapely/GEOS, GeoPandas) |
+| 8 | `geo-ops` | B | Open | 7 | CRS transforms, geometry validation/ops, spatial join, overlay, buffer, convex hull, simplify (shape-preserving vertex reduction) (PyProj, Shapely/GEOS, GeoPandas) |
 | 9 | `geo-formats` | B | Open | 3 | COG / GeoParquet conversion + validation |
 | 10 | `geo-query` | B | Open | 1 | ad-hoc, in-process spatial SQL via DuckDB Spatial (open default, opt-in `[duckdb]` extra) / Amazon Athena over S3 (bring-your-own AWS creds) — for warehouse-scale SQL see `geo-warehouse` |
-| 11 | `geo-raster` | B | Open | 3 | windowed COG reads + band math (NDVI/NDWI/NBR); zonal statistics over vector zones |
+| 11 | `geo-raster` | B | Open | 4 | windowed COG reads (uncompressed/DEFLATE/LZW; int + float, incl. floating-point predictor) + band math (NDVI/NDWI/NBR); zonal statistics over vector zones; zonal band math (per-pixel index across separate single-band COGs, reduced per zone). Pure-Python by default; `geo-raster[fast]` adds a numpy-accelerated zonal engine |
 | 12 | `geo-pointcloud` | B | Open | 2 | Cloud-Optimized Point Cloud (COPC) read/write |
 | 13 | `geo-index` | B | Open | 1 | H3 (0-15) and S2 (0-30) spatial indexing |
 | 14 | `geo-3d` | B | Open | 4 | inspect 3D Tiles + glTF/GLB; tile point clouds → 3D Tiles `.pnts` (optional octree LOD); mesh DEM grids → glTF/GLB terrain (with normals) |
-| 15 | `geo-foundation-models` | C | Open | 4 | embeddings, change detection, segmentation. The on-tile `embed_tile`/`segment` paths use deterministic local stand-in backends for Clay/Prithvi-EO-2.0/SatCLIP/SAMGeo (pluggable for real weights; each result's `backend` field records its provenance); `lookup_embeddings` retrieves **real** published Clay v1.5 (1024-d) Sentinel-2 vectors |
+| 15 | `geo-foundation-models` | C | Open | 9 | embeddings, change detection, segmentation. `embed_asset`/`detect_change_from_assets` read a COG window server-side (byte-range) so you pass an href + window instead of inline pixels; `embed_assets` stacks **separate single-band COGs** (one per band, e.g. Earth Search's per-band `.tif`s) into one embedding; `change_map` returns a per-tile change **grid** over an AOI (tiles → embed both dates → reduce), optionally reduced **per vector zone**. Optional `latlon`/`acquired` are forwarded to location/time-aware backends. On-tile `embed_tile`/`segment` use deterministic local stand-in backends for Clay/Prithvi-EO-2.0/SatCLIP/SAMGeo, pluggable for **real weights** either **in-process** for small workflows (a local embedding callable — set `GEO_FM_EMBED_LOCAL_CALLABLE`) or via a **remote inference endpoint** (generic HTTPS or AWS SageMaker — set `GEO_FM_EMBED_ENDPOINT_URL`/`GEO_FM_SAGEMAKER_ENDPOINT`); `backend` records provenance, `structure_only` flags a no-pixel tile, and change tools loudly caveat (or refuse) under the uncalibrated stand-in. Bring any model with a small `embed(payload)` callable + `GEO_FM_EXTRA_MODELS="Name:Dim"` (see `examples/custom-embedding-backend/` and `examples/clay-local-backend/`; validate with the `RUN_LIVE_EMBED=1` self-test). `lookup_embeddings` retrieves **real** published Clay v1.5 (1024-d) Sentinel-2 vectors; `available_embedding_periods` lists the months those cover |
 | 16 | `geo-embedding-search` | C | Open | 2 | embedding store + similarity search (OpenSearch, LanceDB) |
 | 17 | `geo-warehouse` | Credentialed (B-class) | Proprietary | 1 | warehouse-scale spatial SQL against managed cloud warehouses (BigQuery, Snowflake, Redshift, Databricks) — for open/ad-hoc SQL see `geo-query` |
 | 18 | `geo-commercial-imagery` | Credentialed | Proprietary | 2 | commercial imagery search + ordering, routed by provider: Maxar via Sentinel Hub TPDI, Planet via Planet's Data/Orders APIs |
@@ -164,7 +164,7 @@ attribution.
 
 | Companion | Source | License | Use it for |
 |-----------|--------|---------|------------|
-| `gdal-mcp` | [JordanGunn/gdal-mcp](https://github.com/JordanGunn/gdal-mcp) | MIT | Local-file GDAL/Rasterio ops: file-level raster/vector reproject + convert, and vector `buffer`/`simplify`/`clip` |
+| `gdal-mcp` | [JordanGunn/gdal-mcp](https://github.com/JordanGunn/gdal-mcp) | MIT | Local-file GDAL/Rasterio ops: file-level raster/vector reproject + convert, and vector `clip` (for `buffer`/`convex_hull`/`simplify` use this pack's `geo-ops`) |
 | `gis-mcp` | [mahdin75/gis-mcp](https://github.com/mahdin75/gis-mcp) | MIT | Spatial statistics / ESDA you don't get here (PySAL: Moran's I, Geary's C, Getis-Ord, LISA, spatial regression) and map rendering (static Matplotlib + interactive Folium web maps) |
 
 `gis-mcp` is a single local server built on the classic desktop Python GIS
@@ -178,10 +178,6 @@ PyPI:
 ```bash
 uvx gis-mcp
 ```
-
-(Earlier versions of this pack wrapped `gis-mcp` for two generic geometry ops;
-`geo-ops` now implements `buffer` and `convex_hull` natively, so `gis-mcp` is a
-recommended companion rather than a dependency.)
 
 `gdal-mcp` is the **local-file** complement to this pack's cloud-native
 connectors. Install it separately from PyPI:
@@ -342,6 +338,7 @@ uv pip install -e ./packages/geo-stac
 uv pip install -e ./packages/geo-vector
 uv pip install -e ./packages/geo-ops
 uv pip install -e ./packages/geo-foundation-models
+uv pip install -e ./packages/aws-geo-compute
 
 # 4) Any expansion / credentialed servers you need, e.g.
 uv pip install -e ./packages/geo-formats

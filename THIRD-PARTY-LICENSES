@@ -39,12 +39,23 @@ Optional extras (installed only when the corresponding extra is enabled):
   snowflake-connector-python    Apache-2.0
   databricks-sql-connector      Apache-2.0
   google-cloud-bigquery         Apache-2.0
+  fsspec                        BSD-3-Clause   (geo-formats[remote])
+  s3fs                          BSD-3-Clause   (geo-formats[remote])
+  aiohttp                       Apache-2.0     (geo-formats[remote])
+  boto3 / botocore              Apache-2.0     (geo-foundation-models[remote];
+                                               also a runtime dep of the
+                                               credentialed servers above)
 
 Development / test only (not distributed with the runtime):
   pytest                        MIT
   pytest-asyncio                Apache-2.0
   hypothesis                    MPL-2.0
   moto                          Apache-2.0
+
+Examples only (referenced by examples/, user-installed, not a package dependency):
+  torch (PyTorch)               BSD-3-Clause
+  claymodel (Clay v1.5)         Apache-2.0     (examples/clay-local-backend)
+  terratorch (Prithvi-EO-2.0)   Apache-2.0     (examples/prithvi-local-backend)
 
 --------------------------------------------------------------------------------
 External MCP servers (referenced / documented as companions; not redistributed)

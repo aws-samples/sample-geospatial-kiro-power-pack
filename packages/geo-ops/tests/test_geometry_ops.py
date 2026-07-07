@@ -144,6 +144,7 @@ async def test_server_registers_and_runs_tools():
         "overlay",
         "buffer",
         "convex_hull",
+        "simplify",
     }
     validity = await server.validate_geometry(geometry=_poly(BOWTIE))
     assert validity.valid is False

@@ -63,13 +63,15 @@ def _reference(grid: RasterGrid, ring_box, stats):
     out: Dict[str, Optional[float]] = {}
     if not vals:
         return {s: None for s in stats}
+    mean = sum(vals) / len(vals)
     for s in stats:
         out[s] = {
             "min": min(vals),
             "max": max(vals),
             "sum": sum(vals),
-            "mean": sum(vals) / len(vals),
+            "mean": mean,
             "count": float(len(vals)),
+            "std": (sum((v - mean) ** 2 for v in vals) / len(vals)) ** 0.5,
         }[s]
     return out
 
@@ -90,6 +92,31 @@ def test_per_zone_statistics_match_reference() -> None:
     assert zone.statistics == _reference(grid, box, stats)
     # Concretely: {0,1,4,5} -> min 0, max 5, sum 10, mean 2.5, count 4.
     assert zone.statistics == {"min": 0.0, "max": 5.0, "mean": 2.5, "sum": 10.0, "count": 4.0}
+
+
+def test_std_is_population_standard_deviation() -> None:
+    """Req 8.7: ``std`` is the population standard deviation (ddof=0)."""
+    grid = _grid()
+    box = (0.0, 2.0, 2.0, 4.0)  # covers cells {0,1,4,5} -> values 0,1,4,5
+    fc = FeatureCollection(features=[_zone(_polygon(*box), "A")])
+
+    zone = compute_zonal_statistics(grid, fc, ["std"])[0]
+
+    # mean 2.5; variance = (6.25+2.25+2.25+6.25)/4 = 4.25; std = sqrt(4.25).
+    assert zone.no_data is False
+    assert zone.statistics["std"] == pytest.approx(4.25 ** 0.5)
+    assert zone.statistics["std"] == pytest.approx(_reference(grid, box, ["std"])["std"])
+
+
+def test_std_of_single_cell_zone_is_zero() -> None:
+    """A zone overlapping exactly one cell has zero spread (population std)."""
+    grid = _grid()
+    box = (0.0, 3.0, 1.0, 4.0)  # covers only cell 0 (center 0.5, 3.5)
+
+    zone = compute_zonal_statistics(grid, FeatureCollection(features=[_zone(_polygon(*box), "A")]), ["std", "count"])[0]
+
+    assert zone.no_data is False
+    assert zone.statistics == {"std": 0.0, "count": 1.0}
 
 
 def test_zone_with_no_overlapping_cells_is_no_data_others_still_returned() -> None:

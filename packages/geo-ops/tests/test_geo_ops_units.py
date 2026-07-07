@@ -28,6 +28,7 @@ from geo_ops.geometry import (
     buffer,
     convex_hull,
     overlay,
+    simplify,
     spatial_join,
     validate_geometry,
 )
@@ -231,5 +232,91 @@ def test_convex_hull_malformed_geometry_is_validation_error():
     """Coordinates Shapely cannot parse surface as a validation error."""
     with pytest.raises(ValidationError) as exc:
         convex_hull(_poly("garbage"))
+    assert exc.value.category is ErrorCategory.VALIDATION
+    assert exc.value.source == "geo-ops"
+
+
+# =========================================================================
+# Native generic-GIS op: simplify (Douglas-Peucker; Shapely/GEOS)
+# =========================================================================
+
+def _count_vertices(geometry: GeoJSONGeometry) -> int:
+    """Count coordinates in a (Multi)Polygon/LineString for vertex assertions."""
+    from shapely.geometry import shape
+
+    shp = shape(geometry.to_geojson())
+    return len(shp.exterior.coords) if shp.geom_type == "Polygon" else len(shp.coords)
+
+
+def test_simplify_removes_collinear_vertices():
+    """A collinear midpoint on a square edge is dropped without changing shape."""
+    # Unit square with a redundant collinear vertex at (0.5, 0) on the bottom edge.
+    ring = [[[0, 0], [0.5, 0], [1, 0], [1, 1], [0, 1], [0, 0]]]
+    result = simplify(_poly(ring), tolerance=0.01)
+    assert result.type == "Polygon"
+
+    from shapely.geometry import shape
+
+    simplified = shape(result.to_geojson())
+    original = shape(_poly(ring).to_geojson())
+    # Same footprint, fewer vertices.
+    assert simplified.equals(original)
+    assert _count_vertices(result) < _count_vertices(_poly(ring))
+
+
+def test_simplify_preserves_concavity_unlike_convex_hull():
+    """simplify keeps an L-shape concave; convex_hull would fill it in."""
+    # An L-shaped (concave) polygon.
+    ell = [[[0, 0], [2, 0], [2, 1], [1, 1], [1, 2], [0, 2], [0, 0]]]
+    result = simplify(_poly(ell), tolerance=0.001)
+
+    from shapely.geometry import shape
+
+    simplified = shape(result.to_geojson())
+    original = shape(_poly(ell).to_geojson())
+    hull = original.convex_hull
+    # simplify stays true to the concave footprint; the hull is strictly larger.
+    assert simplified.equals(original)
+    assert hull.area > original.area
+
+
+def test_simplify_zero_tolerance_keeps_geometry_equivalent():
+    """tolerance=0 removes nothing meaningful; the footprint is unchanged."""
+    result = simplify(_poly(UNIT_SQUARE), tolerance=0.0)
+    from shapely.geometry import shape
+
+    assert shape(result.to_geojson()).equals(shape(_poly(UNIT_SQUARE).to_geojson()))
+
+
+@pytest.mark.parametrize("bad_tolerance", ["0.1", None, True, float("nan"), float("inf")])
+def test_simplify_invalid_tolerance_is_validation_error(bad_tolerance):
+    """A non-numeric/non-finite tolerance is rejected before any geometry work."""
+    with pytest.raises(ValidationError) as exc:
+        simplify(_poly(UNIT_SQUARE), tolerance=bad_tolerance)
+    assert exc.value.category is ErrorCategory.VALIDATION
+    assert exc.value.detail == {"parameter": "tolerance"}
+
+
+def test_simplify_negative_tolerance_is_validation_error():
+    """A negative tolerance is rejected as validation."""
+    with pytest.raises(ValidationError) as exc:
+        simplify(_poly(UNIT_SQUARE), tolerance=-1.0)
+    assert exc.value.category is ErrorCategory.VALIDATION
+    assert exc.value.detail == {"parameter": "tolerance"}
+
+
+@pytest.mark.parametrize("bad_flag", ["true", 1, None])
+def test_simplify_non_boolean_preserve_topology_is_validation_error(bad_flag):
+    """A non-boolean preserve_topology is rejected as validation."""
+    with pytest.raises(ValidationError) as exc:
+        simplify(_poly(UNIT_SQUARE), tolerance=0.1, preserve_topology=bad_flag)
+    assert exc.value.category is ErrorCategory.VALIDATION
+    assert exc.value.detail == {"parameter": "preserve_topology"}
+
+
+def test_simplify_malformed_geometry_is_validation_error():
+    """Coordinates Shapely cannot parse surface as a validation error."""
+    with pytest.raises(ValidationError) as exc:
+        simplify(_poly("garbage"), tolerance=0.1)
     assert exc.value.category is ErrorCategory.VALIDATION
     assert exc.value.source == "geo-ops"

@@ -15,7 +15,7 @@ credential refuses to start before any serving is attempted.
 
 from __future__ import annotations
 
-from typing import List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 import pytest
 from pydantic import BaseModel
@@ -107,6 +107,41 @@ def test_input_schema_expands_optional_and_list_of_models() -> None:
     many_schema = schema["properties"]["many"]
     assert many_schema["type"] == "array"
     assert set(many_schema["items"]["properties"]) == {"name", "value"}
+
+
+def test_input_schema_multitype_union_advertises_every_branch() -> None:
+    """A multi-type ``Union`` param advertises all accepted forms via ``anyOf``.
+
+    Regression: previously only the first union member (a pydantic model) was
+    emitted, so an MCP client never saw that a path string was also accepted
+    (the ``to_geoparquet`` ``src`` symptom). Every branch must be advertised.
+    """
+
+    async def tool(*, src: Union[_Sample, Dict[str, Any], str]):
+        return None
+
+    schema = build_tool_input_schema(tool)
+    src_schema = schema["properties"]["src"]
+    assert "anyOf" in src_schema
+    types = {branch.get("type") for branch in src_schema["anyOf"]}
+    # The model branch (object with fields), a generic object, and a string.
+    assert "string" in types
+    assert "object" in types
+    # The model's fields still surface on its branch.
+    model_branch = next(b for b in src_schema["anyOf"] if b.get("properties"))
+    assert set(model_branch["properties"]) == {"name", "value"}
+
+
+def test_input_schema_optional_model_stays_single_object() -> None:
+    """``Optional[Model]`` collapses to the model object schema (no ``anyOf``)."""
+
+    async def tool(*, one: Optional[_Sample] = None):
+        return None
+
+    one_schema = build_tool_input_schema(tool)["properties"]["one"]
+    assert "anyOf" not in one_schema
+    assert one_schema["type"] == "object"
+    assert set(one_schema["properties"]) == {"name", "value"}
 
 
 def test_input_schema_hoists_nested_model_defs_to_root() -> None:

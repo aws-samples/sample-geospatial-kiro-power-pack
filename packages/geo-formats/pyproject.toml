@@ -33,7 +33,10 @@ dependencies = [
     "mcp>=1.0,<2",
 ]
 
-[project.optional-dependencies]
+# Optional: read vector sources from remote object stores (s3://, gs://, http(s)://)
+# for to_geoparquet's `src`. The default install reads local paths only; this
+# extra adds the fsspec backends geopandas uses for remote reads.
+remote = ["fsspec>=2023.1", "s3fs>=2023.1", "aiohttp>=3.9"]
 dev = ["pytest>=8.0,<9", "pytest-asyncio>=0.23,<1", "hypothesis>=6.100"]
 
 [project.scripts]

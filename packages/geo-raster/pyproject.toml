@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "geo-raster"
-version = "0.2.0"
-description = "Pillar B (expansion) MCP server: windowed Cloud-Optimized GeoTIFF reads, band math (NDVI/NDWI/NBR), and zonal statistics over rasters via S3 byte-range reads (rasterio, rasterstats)."
+version = "0.3.0"
+description = "Pillar B (expansion) MCP server: windowed Cloud-Optimized GeoTIFF reads, band math (NDVI/NDWI/NBR), zonal statistics, and zonal band math (per-pixel index across separate single-band COGs) over rasters via S3/HTTP byte-range reads (pure-Python COG reader; optional numpy accelerator for zonal statistics via the 'fast' extra)."
 requires-python = ">=3.10"
 license = "MIT-0"
 authors = [{ name = "Geospatial Power Pack Contributors" }]
@@ -29,7 +29,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8.0,<9", "pytest-asyncio>=0.23,<1", "hypothesis>=6.100"]
+# Optional accelerator: vectorized numpy zonal engine (compute_zonal_statistics
+# backend="numpy"/"auto"). The default install stays dependency-light and uses
+# the pure-Python engine; large/interactive zonal + zonal-band-math runs are
+# faster with this extra. Truly large workloads belong on aws-geo-compute.
+fast = ["numpy>=1.24"]
+dev = ["pytest>=8.0,<9", "pytest-asyncio>=0.23,<1", "hypothesis>=6.100", "numpy>=1.24"]
 
 [project.scripts]
 geo-raster = "geo_raster.server:main"

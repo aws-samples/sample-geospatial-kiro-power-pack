@@ -34,6 +34,10 @@ __all__ = [
     "RasterTile",
     "ModelSpec",
     "EmbeddingResult",
+    "AssetChangeResult",
+    "ChangeMapCell",
+    "ZoneChange",
+    "ChangeMapResult",
     "EmbeddingMetadata",
     "EmbeddingRecord",
     "SegmentationMask",
@@ -74,6 +78,21 @@ class RasterTile(BaseModel):
         ),
     )
     dtype: str = Field(default="uint8", description="Pixel data type label.")
+    latlon: Optional[Tuple[float, float]] = Field(
+        default=None,
+        description=(
+            "Optional (latitude, longitude) center of the tile in EPSG:4326. "
+            "Passed through to the embedding backend so location-aware models "
+            "(e.g. Clay) can condition on it; omit (None) to skip that context."
+        ),
+    )
+    acquired: Optional[str] = Field(
+        default=None,
+        description=(
+            "Optional ISO-8601 acquisition datetime of the tile. Passed to the "
+            "backend for time-aware conditioning; omit (None) to skip it."
+        ),
+    )
 
     @property
     def pixel_count(self) -> int:
@@ -118,6 +137,109 @@ class EmbeddingResult(BaseModel):
             "backend identifier (e.g. 'clay-v1.5') when one is wired in."
         ),
     )
+    structure_only: bool = Field(
+        default=False,
+        description=(
+            "True when the tile carried no inlined pixel data, so the embedding "
+            "was derived from the tile's structure (width/height/bands/format/"
+            "dtype) only. Two structure-only tiles of the same shape yield the "
+            "IDENTICAL embedding, which detect_change reports as 0.0 ('no "
+            "change') even though no pixels were compared — treat a "
+            "structure-only result as not a real measurement."
+        ),
+    )
+
+
+class AssetChangeResult(BaseModel):
+    """Change between two assets embedded server-side (read -> embed -> compare).
+
+    ``change`` is the ``[0.0, 1.0]`` measure from :func:`detect_change`. ``backend``
+    and ``structure_only`` carry the same honesty provenance as
+    :class:`EmbeddingResult` (``structure_only`` is True if *either* asset window
+    had no pixels). ``caveat`` is populated whenever the result is not a
+    calibrated measurement — i.e. under the deterministic stand-in backend or a
+    structure-only read — so the number is never mistaken for a real result.
+    """
+
+    change: float = Field(ge=0.0, le=1.0)
+    model: str = Field(min_length=1)
+    dimension: int = Field(gt=0)
+    backend: str = Field(default="deterministic-local")
+    structure_only: bool = False
+    caveat: Optional[str] = None
+
+
+class ChangeMapCell(BaseModel):
+    """One tile of a :class:`ChangeMapResult` — a per-tile change measurement.
+
+    ``row``/``col`` index the tile within the change grid (row-major, origin at
+    the AOI window's top-left). ``bbox`` is the tile's extent in the assets' CRS
+    (``[min_x, min_y, max_x, max_y]``). ``change`` is the ``[0.0, 1.0]``
+    :func:`~geo_foundation_models.change.detect_change` measure between the two
+    dates for that tile. ``structure_only`` is True when the tile carried no
+    pixel data on at least one date (so its change is not a real measurement).
+    """
+
+    row: int = Field(ge=0)
+    col: int = Field(ge=0)
+    bbox: Tuple[float, float, float, float]
+    change: float = Field(ge=0.0, le=1.0)
+    structure_only: bool = False
+
+
+class ZoneChange(BaseModel):
+    """Per-zone summary of a change grid (optional reduction of a ChangeMapResult).
+
+    ``mean_change`` / ``max_change`` aggregate the ``change`` of every grid tile
+    whose center falls inside the zone; ``tile_count`` is how many did. A zone
+    that no tile center falls in gets ``None`` statistics and ``tile_count`` 0
+    (a no-data indication), mirroring ``zonal_statistics`` (Requirement 8.8).
+    """
+
+    zone_id: str
+    mean_change: Optional[float] = None
+    max_change: Optional[float] = None
+    tile_count: int = Field(ge=0, default=0)
+
+
+class ChangeMapResult(BaseModel):
+    """A per-tile change grid between two co-registered assets (roadmap B#5).
+
+    Tiles the AOI window into a ``rows x cols`` grid, embeds both dates per tile
+    through the active backend, and reduces each tile to a ``[0,1]`` change
+    measure (:class:`ChangeMapCell`). ``backend`` records provenance and
+    ``caveat`` is populated whenever the grid is **not** a calibrated
+    measurement — i.e. under the deterministic stand-in backend (where every
+    tile scores ~0.5 noise) or a structure-only read — so the grid is never
+    mistaken for a real result.
+    """
+
+    model: str = Field(min_length=1)
+    dimension: int = Field(gt=0)
+    backend: str = Field(default="deterministic-local")
+    tile_size: int = Field(gt=0)
+    rows: int = Field(ge=0)
+    cols: int = Field(ge=0)
+    cell_count: int = Field(ge=0)
+    cells: List[ChangeMapCell] = Field(default_factory=list)
+    zones: Optional[List[ZoneChange]] = Field(
+        default=None,
+        description=(
+            "Per-zone reduction of the grid, present only when 'zones' were "
+            "passed: each tile's change aggregated into the vector zones it "
+            "falls in (mean/max/tile_count). None when no zones were requested."
+        ),
+    )
+    structure_only: bool = False
+    calibrated: bool = Field(
+        default=False,
+        description=(
+            "True only when a real-weight backend produced the embeddings. "
+            "False under the deterministic stand-in, where the grid is ~0.5 "
+            "noise everywhere; see 'caveat'."
+        ),
+    )
+    caveat: Optional[str] = None
 
 
 class EmbeddingMetadata(BaseModel):

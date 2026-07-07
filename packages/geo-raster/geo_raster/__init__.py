@@ -1,7 +1,8 @@
 """geo-raster: the Pillar B (expansion) raster-analytics MCP server.
 
 ``geo-raster`` computes **zonal statistics** — per-zone minimum, maximum, mean,
-sum, and count of a raster over a set of vector zones (Requirement 8.7) — reading
+sum, count, and population standard deviation (``std``) of a raster over a set of
+vector zones (Requirement 8.7) — reading
 only the overlapping window directly from S3/HTTP byte ranges and never copying
 the full asset to local storage. A zone with no overlapping cells gets a no-data
 indication while the remaining zones still receive statistics (Requirement 8.8),
@@ -43,6 +44,7 @@ from geo_raster.server import GeoRasterServer, INSTALL_COMMAND, main
 from geo_raster.window_models import GeoWindow, PixelWindow, RasterArray
 from geo_raster.window_reader import band_math, read_window, resolve_pixel_window
 from geo_raster.zonal import compute_zonal_statistics, zonal_statistics
+from geo_raster.zonal_band_math import zonal_band_math
 
 __all__ = [
     "RasterGrid",
@@ -66,6 +68,7 @@ __all__ = [
     "RasterArray",
     "read_window",
     "band_math",
+    "zonal_band_math",
     "resolve_pixel_window",
     "GeoRasterServer",
     "INSTALL_COMMAND",

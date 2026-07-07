@@ -102,9 +102,9 @@ purely as recommendations, with attribution.
   ([JordanGunn/gdal-mcp](https://github.com/JordanGunn/gdal-mcp), MIT). It
   complements this pack's cloud-native connectors with **local-file** GDAL
   muscle: file-level raster/vector reprojection and format conversion, plus
-  common vector ops (`buffer`, `simplify`, `clip`) that `geo-ops` doesn't cover.
-  Reach for it for local/desktop file processing; reach for this pack for
-  cloud-native reads (STAC, COG byte-range, open APIs).
+  file-level vector `clip`. (`geo-ops` now covers `buffer`, `convex_hull`, and
+  `simplify` natively.) Reach for it for local/desktop file processing; reach
+  for this pack for cloud-native reads (STAC, COG byte-range, open APIs).
   - Install (separately, from PyPI): `uvx --from gdal-mcp gdal --transport stdio`
   - **Caveat 1:** it is scoped by `GDAL_MCP_WORKSPACES` (a directory allowlist).
     If unset, *all paths are allowed* — set it to constrain file access.
@@ -175,6 +175,10 @@ AWS Partner Network.
   (multidimensional), COPC (point clouds).
 - **AWS-native "bring compute to the data"** — read only the byte ranges
   required directly from S3; delegate heavy jobs to `aws-geo-compute`.
+- **Reduce vector complexity; reference geometry by location** — the vector
+  analogue of byte-range reads. Shrink high-vertex geometries before an op
+  (`geo-ops.simplify` → `convex_hull` → bbox) and prefer passing large
+  geometries by path/href over inlining thousands of coordinates.
 - **Reuse vs build** — every connector is implemented natively on the shared
   `geo-common` base; mature external MCP servers are recommended as companions
   rather than wrapped or redistributed.

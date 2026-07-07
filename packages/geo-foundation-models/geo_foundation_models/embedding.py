@@ -28,8 +28,9 @@ plumbing so it is easy to test and reuse:
 from __future__ import annotations
 
 import hashlib
+import os
 import struct
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Mapping, Optional
 
 import numpy as np
 
@@ -51,23 +52,35 @@ __all__ = [
     "coerce_raster_tile",
     "validate_tile",
     "embed_tile",
+    "extra_models_from_env",
+    "registry_from_env",
+    "ENV_EXTRA_MODELS",
 ]
+
+#: Environment key: extra models to register on the running server, as a
+#: comma-separated ``Name:Dimension`` list (e.g. ``"MyModel:2048,Foo:512"``).
+#: Lets a user declare a custom model's embedding width without code so a
+#: bring-your-own real-weight backend's output matches the tool's declared
+#: dimension (``embed_tile`` guards the match).
+ENV_EXTRA_MODELS = "GEO_FM_EXTRA_MODELS"
 
 #: The default configurable model set. Dimensions reflect each model's
 #: published embedding width; they are configuration, not hard requirements,
 #: and may be overridden by constructing a :class:`ModelRegistry` (Req 9.2).
 #:
-#: Note on "Clay": this 768-d entry matches **Clay v1** and is produced here by
-#: the local *deterministic stub* backend (a stand-in until real model weights
-#: are wired in). It is intentionally distinct from
-#: :func:`geo_foundation_models.clay_embeddings.lookup_embeddings`, which
-#: retrieves *real* published **Clay v1.5** (1024-d) embeddings. The two are
-#: different versions produced by different backends and live in different
-#: vector spaces, so their outputs are **not** comparable (e.g. via
-#: ``detect_change``); the differing dimensionality also guards against mixing
-#: them by accident.
+#: Note on the two "Clay" entries: ``"Clay"`` is the 768-d **Clay v1** width and
+#: ``"Clay-v1.5"`` is the 1024-d **Clay v1.5** width — the dimensionality real
+#: Clay v1.5 weights produce (matching
+#: :func:`geo_foundation_models.clay_embeddings.lookup_embeddings`). By default
+#: **both** are produced by the local *deterministic stub* backend (a stand-in
+#: until real weights are wired in via a local/remote real-weight backend). Pick
+#: ``"Clay-v1.5"`` when wiring a real Clay v1.5 backend so the tool's declared
+#: dimension matches the backend output (``embed_tile`` rejects a mismatch). The
+#: distinct dimensions keep vectors from different model versions from being
+#: compared by accident (e.g. via ``detect_change``).
 DEFAULT_MODELS: Dict[str, ModelSpec] = {
     "Clay": ModelSpec(name="Clay", dimension=768),
+    "Clay-v1.5": ModelSpec(name="Clay-v1.5", dimension=1024),
     "Prithvi-EO-2.0": ModelSpec(name="Prithvi-EO-2.0", dimension=1024),
     "SatCLIP": ModelSpec(name="SatCLIP", dimension=256),
 }
@@ -366,4 +379,62 @@ def embed_tile(
         dimension=spec.dimension,
         vector=vector,
         backend=getattr(eng, "backend_id", "unknown"),
+        structure_only=tile.data is None,
     )
+
+
+def extra_models_from_env(env: Optional[Mapping[str, str]] = None) -> List[ModelSpec]:
+    """Parse ``GEO_FM_EXTRA_MODELS`` into a list of :class:`ModelSpec`.
+
+    The value is a comma-separated ``Name:Dimension`` list (e.g.
+    ``"Clay-v1.5:1024, MyModel:2048"``). Returns ``[]`` when unset. Raises an
+    ``Error_Taxonomy`` :class:`~geo_common.errors.ValidationError` for a
+    malformed entry so a typo fails clearly at startup rather than silently
+    dropping a model.
+    """
+    raw = ((env if env is not None else os.environ).get(ENV_EXTRA_MODELS) or "").strip()
+    if not raw:
+        return []
+    specs: List[ModelSpec] = []
+    for item in raw.split(","):
+        item = item.strip()
+        if not item:
+            continue
+        name, sep, dim = item.rpartition(":")
+        name = name.strip()
+        if not sep or not name:
+            raise ValidationError(
+                "malformed %s entry %r; expected 'Name:Dimension'"
+                % (ENV_EXTRA_MODELS, item),
+                source=_SOURCE,
+                detail={"parameter": ENV_EXTRA_MODELS},
+            )
+        try:
+            dimension = int(dim.strip())
+        except (TypeError, ValueError):
+            raise ValidationError(
+                "model %r has a non-integer dimension %r in %s"
+                % (name, dim.strip(), ENV_EXTRA_MODELS),
+                source=_SOURCE,
+                detail={"parameter": ENV_EXTRA_MODELS},
+            )
+        if dimension <= 0:
+            raise ValidationError(
+                "model %r must have a positive dimension, got %d" % (name, dimension),
+                source=_SOURCE,
+                detail={"parameter": ENV_EXTRA_MODELS},
+            )
+        specs.append(ModelSpec(name=name, dimension=dimension))
+    return specs
+
+
+def registry_from_env(env: Optional[Mapping[str, str]] = None) -> "ModelRegistry":
+    """Build a :class:`ModelRegistry` from the defaults plus ``GEO_FM_EXTRA_MODELS``.
+
+    Registered extras override a same-named default, so a user can both add new
+    models and correct a dimension without code.
+    """
+    reg = ModelRegistry()
+    for spec in extra_models_from_env(env):
+        reg.register(spec)
+    return reg

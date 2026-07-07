@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "geo-ops"
-version = "0.2.0"
+version = "0.3.0"
 description = "Pillar B (MVP) MCP server: CRS transforms, geometry validation, spatial joins, and overlays via PyProj and Shapely."
 requires-python = ">=3.10"
 license = "MIT-0"

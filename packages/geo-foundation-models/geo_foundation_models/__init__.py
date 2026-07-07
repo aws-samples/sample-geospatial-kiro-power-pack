@@ -16,17 +16,32 @@ from geo_foundation_models.embedding import (
     EmbeddingBackend,
     ModelRegistry,
     embed_tile,
+    extra_models_from_env,
+    registry_from_env,
     validate_tile,
 )
 from geo_foundation_models.change import detect_change
+from geo_foundation_models.change_map import change_map
+from geo_foundation_models.asset_embedding import (
+    detect_change_from_assets,
+    embed_asset,
+    embed_assets,
+)
+from geo_foundation_models.remote_backend import RemoteEndpointBackend, backend_from_env
+from geo_foundation_models.local_backend import LocalCallableBackend
 from geo_foundation_models.segmentation import SAMGEO_MODEL_NAME, segment
 from geo_foundation_models.clay_embeddings import (
     CLAY_V15_DIMENSION,
     CLAY_V15_MODEL_NAME,
+    available_periods,
     lookup_embeddings,
 )
 from geo_foundation_models.models import (
     MAX_TILE_DIMENSION,
+    AssetChangeResult,
+    ChangeMapCell,
+    ChangeMapResult,
+    ZoneChange,
     EmbeddingMetadata,
     EmbeddingRecord,
     EmbeddingResult,
@@ -41,6 +56,10 @@ __all__ = [
     "RasterTile",
     "ModelSpec",
     "EmbeddingResult",
+    "AssetChangeResult",
+    "ChangeMapCell",
+    "ChangeMapResult",
+    "ZoneChange",
     "EmbeddingMetadata",
     "EmbeddingRecord",
     "SegmentationMask",
@@ -53,12 +72,24 @@ __all__ = [
     "DeterministicLocalBackend",
     "validate_tile",
     "embed_tile",
+    "extra_models_from_env",
+    "registry_from_env",
     # GeoAI tools (task 7.2)
     "detect_change",
     "segment",
     "SAMGEO_MODEL_NAME",
+    # Read-then-embed bridges
+    "embed_asset",
+    "embed_assets",
+    "detect_change_from_assets",
+    "change_map",
+    # Real-weight backend seam (remote inference endpoint + local in-process)
+    "RemoteEndpointBackend",
+    "LocalCallableBackend",
+    "backend_from_env",
     # Open Clay v1.5 embedding lookup (LGND / Source Cooperative)
     "lookup_embeddings",
+    "available_periods",
     "CLAY_V15_DIMENSION",
     "CLAY_V15_MODEL_NAME",
     # Server
