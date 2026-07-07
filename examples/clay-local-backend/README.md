@@ -76,18 +76,25 @@ HTTPS). Put `clay_embed.py` on `PYTHONPATH` so `clay_embed:embed` resolves.
 ## Choosing data (important)
 
 Clay is sensor-agnostic but expects the **exact band set and order** of the
-configured sensor, read from a **single multi-band COG**:
+configured sensor. Two ways to supply the bands:
 
-- **NAIP (easiest):** a single 4-band (R/G/B/NIR) COG — set `CLAY_SENSOR=naip`
+- **A single multi-band COG** → `embed_asset(raster_href=..., bands=[...])`.
+  **NAIP (easiest):** a single 4-band (R/G/B/NIR) COG — set `CLAY_SENSOR=naip`
   and `--bands 1 2 3 4`. Ideal for a first real test.
-- **Sentinel-2 L2A:** 10 bands in a fixed order. Earth Search stores each band
-  as a *separate* single-band COG, and the pack's `embed_asset`/`change_map`
-  read bands from **one** href — so stack the 10 bands into one multi-band COG
-  first (e.g. with the companion `gdal-mcp`/GDAL), then read `--bands 1..10`.
+- **Separate single-band COGs** (one per band, as Earth Search publishes
+  Sentinel-2) → **`embed_assets(assets=[b1_href, b2_href, ...])`**, an ordered
+  list in the sensor's band order. This reads the per-band COGs **directly** —
+  no pre-stacking. (`smoke_clay.py` demonstrates the single-href path;
+  `embed_assets` is the multi-file entry point.)
 
-This single-href-per-read limit is a known edge (the same one `zonal_band_math`
-addresses for indices); a future `embed_assets` mapping band→href would let Clay
-read Earth Search's per-band COGs directly.
+**Resolution caveat for full Sentinel-2 L2A.** `embed_assets` requires all
+bands to share one pixel grid over the read window. S2's 10 bands span three
+resolutions (10 m: B02/B03/B04/B08; 20 m: red-edge/SWIR; 60 m), so passing all
+ten single-band COGs to `embed_assets` is rejected as mis-aligned. Either
+resample them to a common grid first (out of the read path — e.g. the companion
+`gdal-mcp`/GDAL, then one multi-band COG via `embed_asset`), or configure a Clay
+sensor that uses only same-resolution bands (e.g. the four 10 m bands) and pass
+those directly to `embed_assets`.
 
 ## Verified
 
