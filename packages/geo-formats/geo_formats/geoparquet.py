@@ -53,8 +53,10 @@ def to_geoparquet(
     """Convert a vector dataset ``src`` to GeoParquet at ``dst_href`` (Req 8.5).
 
     ``src`` may be a :class:`FeatureCollection` (or a GeoJSON
-    ``FeatureCollection`` mapping), or a path string to an existing
-    ``.parquet`` or ``.geojson``/``.json`` file. The written file is a valid
+    ``FeatureCollection`` mapping), or a path/href to an existing ``.parquet``
+    or ``.geojson``/``.json`` file — local, or a remote ``s3://``/``gs://``/
+    ``https://`` object with the optional ``geo-formats[remote]`` extra. The
+    written file is a valid
     GeoParquet (geometry stored as WKB with embedded ``geo`` metadata) whose
     round-trip preserves feature count, geometries, and attributes exactly
     (Property 3).

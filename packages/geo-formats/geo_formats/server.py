@@ -137,8 +137,10 @@ class GeoFormatsServer(BaseGeoServer):
 
         ``src`` accepts any of: an inline GeoJSON ``FeatureCollection`` (features
         with geometry + properties), an equivalent GeoJSON mapping, or a **path
-        to an existing ``.geojson``/``.json`` or ``.parquet`` file** — so a large
-        vector produced by an earlier step can be referenced by path instead of
+        or href to an existing ``.geojson``/``.json`` or ``.parquet`` file** —
+        local, or a remote ``s3://``/``gs://``/``https://`` object with the
+        optional ``geo-formats[remote]`` extra (fsspec/s3fs). So a large vector
+        produced by an earlier step can be referenced by location instead of
         pasted inline.
 
         Validation errors for malformed input propagate unchanged; on a write
