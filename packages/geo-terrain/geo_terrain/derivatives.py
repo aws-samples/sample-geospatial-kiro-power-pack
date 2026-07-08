@@ -28,8 +28,12 @@ import numpy as np
 __all__ = [
     "meters_per_degree",
     "compute_slope",
+    "compute_aspect",
     "compute_hillshade",
 ]
+
+#: Aspect value for a flat cell (undefined downslope direction), matching GDAL.
+FLAT_ASPECT = -1.0
 
 #: Metres per degree of latitude (mean; WGS84 is ~110.57 km at the equator to
 #: ~111.69 km at the poles - this mean is adequate for small extents).
@@ -90,6 +94,32 @@ def compute_slope(
     slope_rad = np.arctan(np.sqrt(dz_dx * dz_dx + dz_dy * dz_dy))
     slope_deg = np.degrees(slope_rad)
     return _to_grid(slope_deg)
+
+
+def compute_aspect(
+    values: List[List[Optional[float]]],
+    *,
+    cellsize_x_m: float,
+    cellsize_y_m: float,
+) -> List[List[Optional[float]]]:
+    """Per-cell aspect in **compass degrees** ``[0, 360)`` for an elevation grid.
+
+    Aspect is the compass bearing of the **downslope** direction (the way water
+    would flow), measured clockwise from north (0 = north-facing, 90 = east,
+    180 = south, 270 = west). With east-positive ``dz/dx`` and north-positive
+    ``dz/dy``, the downslope vector is ``(-dz/dx, -dz/dy)`` in (east, north), so
+    ``aspect = atan2(-dz/dx, -dz/dy)`` normalized to ``[0, 360)``.
+
+    Flat cells (no gradient) have no defined aspect and come back as
+    :data:`FLAT_ASPECT` (``-1``), matching GDAL. Cells whose gradient involves a
+    no-data neighbour come back as ``None``.
+    """
+    grid = _to_array(values)
+    dz_dx, dz_dy = _gradients(grid, cellsize_x_m, cellsize_y_m)
+    aspect_deg = np.degrees(np.arctan2(-dz_dx, -dz_dy)) % 360.0
+    flat = (np.abs(dz_dx) < 1e-12) & (np.abs(dz_dy) < 1e-12)
+    aspect_deg = np.where(flat, FLAT_ASPECT, aspect_deg)
+    return _to_grid(aspect_deg)
 
 
 def compute_hillshade(

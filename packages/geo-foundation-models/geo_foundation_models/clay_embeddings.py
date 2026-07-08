@@ -67,6 +67,7 @@ __all__ = [
     "AVAILABLE_PERIODS",
     "DEFAULT_LOOKUP_LIMIT",
     "DEFAULT_MAX_LOOKUP_AREA_KM2",
+    "available_periods",
     "gzd_partitions",
     "periods_in_range",
     "EmbeddingRow",
@@ -85,6 +86,16 @@ CLAY_V15_MODEL_NAME = "Clay-v1.5"
 
 #: (year, month) partitions the dataset currently publishes.
 AVAILABLE_PERIODS: Tuple[Tuple[int, int], ...] = ((2024, 6), (2025, 6))
+
+
+def available_periods() -> List[str]:
+    """Return the published Clay v1.5 periods as ``"YYYY-MM"`` strings.
+
+    Lets an agent discover that the real-embedding lookup path only covers these
+    months (so a before/after outside them — e.g. 2026 — is unusable) instead of
+    finding out via an empty ``lookup_embeddings`` result.
+    """
+    return [f"{year:04d}-{month:02d}" for (year, month) in AVAILABLE_PERIODS]
 
 #: Default cap on the number of embeddings a single lookup returns. Each record
 #: carries a 1024-float vector, so the cap keeps the response small enough for a

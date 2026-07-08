@@ -12,6 +12,8 @@ import math
 import pytest
 
 from geo_terrain.derivatives import (
+    FLAT_ASPECT,
+    compute_aspect,
     compute_hillshade,
     compute_slope,
     meters_per_degree,
@@ -50,6 +52,36 @@ def test_slope_propagates_none_holes():
     assert any(v is None for row in slope for v in row)
 
 
+def test_aspect_of_flat_grid_is_flat_sentinel():
+    grid = [[5.0, 5.0, 5.0], [5.0, 5.0, 5.0], [5.0, 5.0, 5.0]]
+    aspect = compute_aspect(grid, cellsize_x_m=30.0, cellsize_y_m=30.0)
+    assert all(v == FLAT_ASPECT for row in aspect for v in row)
+
+
+def test_aspect_faces_west_when_elevation_rises_east():
+    # z increases toward the east -> downslope faces west -> aspect 270.
+    grid = [[0.0, 10.0, 20.0], [0.0, 10.0, 20.0], [0.0, 10.0, 20.0]]
+    aspect = compute_aspect(grid, cellsize_x_m=10.0, cellsize_y_m=10.0)
+    for row in aspect:
+        for v in row:
+            assert v == pytest.approx(270.0)
+
+
+def test_aspect_faces_south_when_elevation_rises_north():
+    # Row 0 is north; z decreases southward -> downslope faces south -> aspect 180.
+    grid = [[20.0, 20.0, 20.0], [10.0, 10.0, 10.0], [0.0, 0.0, 0.0]]
+    aspect = compute_aspect(grid, cellsize_x_m=10.0, cellsize_y_m=10.0)
+    for row in aspect:
+        for v in row:
+            assert v == pytest.approx(180.0)
+
+
+def test_aspect_propagates_none_holes():
+    grid = [[0.0, 1.0, 2.0], [0.0, None, 2.0], [0.0, 1.0, 2.0]]
+    aspect = compute_aspect(grid, cellsize_x_m=10.0, cellsize_y_m=10.0)
+    assert any(v is None for row in aspect for v in row)
+
+
 def test_hillshade_of_flat_grid_is_uniform_and_in_range():
     grid = [[100.0] * 4 for _ in range(4)]
     hs = compute_hillshade(grid, cellsize_x_m=30.0, cellsize_y_m=30.0, altitude_deg=45.0)
@@ -67,3 +99,41 @@ def test_hillshade_values_are_bounded():
     for row in hs:
         for v in row:
             assert v is None or 0 <= v <= 255
+
+
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
+
+@pytest.mark.property
+@settings(deadline=None)
+@given(
+    width=st.integers(min_value=2, max_value=6),
+    height=st.integers(min_value=2, max_value=6),
+    a=st.integers(min_value=-5, max_value=5),
+    b=st.integers(min_value=-5, max_value=5),
+    cx=st.sampled_from([1.0, 10.0, 30.0]),
+    cy=st.sampled_from([1.0, 10.0, 30.0]),
+)
+def test_aspect_matches_analytic_bearing_on_a_plane(width, height, a, b, cx, cy) -> None:
+    """Feature: geospatial-power-pack — aspect equals the analytic downslope bearing.
+
+    On a planar surface ``z = a*col + b*row`` the ground gradients are exact
+    constants, so the compass aspect has a closed form independent of the numpy
+    ``np.gradient`` implementation: ``atan2(-a/cx, b/cy)`` (flat when a==b==0).
+    """
+    grid = [[float(a * col + b * row) for col in range(width)] for row in range(height)]
+    aspect = compute_aspect(grid, cellsize_x_m=cx, cellsize_y_m=cy)
+
+    if a == 0 and b == 0:
+        expected = FLAT_ASPECT
+    else:
+        expected = math.degrees(math.atan2(-(a / cx), (b / cy))) % 360.0
+
+    for row in aspect:
+        for v in row:
+            assert v is not None
+            if expected == FLAT_ASPECT:
+                assert v == FLAT_ASPECT
+            else:
+                assert v == pytest.approx(expected, abs=1e-6)

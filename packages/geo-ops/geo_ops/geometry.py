@@ -42,6 +42,7 @@ __all__ = [
     "overlay",
     "buffer",
     "convex_hull",
+    "simplify",
 ]
 
 #: The spatial predicates :func:`spatial_join` accepts (the binary predicates
@@ -356,3 +357,59 @@ def convex_hull(geometry: GeoJSONGeometry, *, source: str = "geo-ops") -> GeoJSO
             original=str(exc) or type(exc).__name__,
         ) from exc
     return GeoJSONGeometry.from_geojson(mapping(hull))
+
+
+def simplify(
+    geometry: GeoJSONGeometry,
+    *,
+    tolerance: float,
+    preserve_topology: bool = True,
+    source: str = "geo-ops",
+) -> GeoJSONGeometry:
+    """Reduce ``geometry``'s vertex count via Douglas-Peucker (Shapely/GEOS).
+
+    Returns a shape-preserving approximation of the input: every point of the
+    result lies within ``tolerance`` (in the geometry's coordinate units) of the
+    original, so the simplified geometry keeps its concavity — unlike
+    :func:`convex_hull`, which is a lossy convex superset. This is the
+    recommended way to shrink a high-vertex zone perimeter before an inline
+    geometry op (zonal stats, CRS transform, spatial join) so the request
+    payload stays small.
+
+    ``tolerance`` must be a finite, non-negative number; ``0`` returns an
+    equivalent geometry (no vertices removed). With ``preserve_topology=True``
+    (the default) GEOS avoids producing an invalid or collapsed result — a
+    safer, slightly slower simplification; ``False`` uses the faster pure
+    Douglas-Peucker that can, for aggressive tolerances, self-intersect.
+
+    Raises :class:`~geo_common.errors.ValidationError` for a non-numeric or
+    non-finite/negative ``tolerance``, a non-boolean ``preserve_topology``, or
+    coordinates Shapely cannot interpret — all before any geometry work.
+    """
+    from shapely.geometry import mapping
+
+    tol = _require_finite_number(tolerance, parameter="tolerance", source=source)
+    if tol < 0:
+        raise ValidationError(
+            "tolerance must be non-negative, got %r" % (tolerance,),
+            source=source,
+            detail={"parameter": "tolerance"},
+        )
+    if not isinstance(preserve_topology, bool):
+        raise ValidationError(
+            "preserve_topology must be a boolean, got %s"
+            % (type(preserve_topology).__name__,),
+            source=source,
+            detail={"parameter": "preserve_topology"},
+        )
+
+    shp = _to_shape(geometry, source=source)
+    try:
+        simplified = shp.simplify(tol, preserve_topology=preserve_topology)
+    except Exception as exc:  # noqa: BLE001
+        raise ValidationError(
+            "simplify failed: %s" % (str(exc) or type(exc).__name__),
+            source=source,
+            original=str(exc) or type(exc).__name__,
+        ) from exc
+    return GeoJSONGeometry.from_geojson(mapping(simplified))

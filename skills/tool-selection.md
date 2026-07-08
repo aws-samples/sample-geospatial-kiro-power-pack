@@ -52,6 +52,33 @@ Dataset size?
 └─ > 100 GB / distributed .......... Apache Sedona on Amazon EMR (aws-geo-compute)
 ```
 
+The tree above keys on **raster/dataset size in bytes**. That is not the only
+scaling axis — see the next step for the vector one.
+
+## Step 2b — Route by vector complexity and request payload
+
+Dataset *bytes* is not the only thing that makes a call slow or fail. A tool
+that takes **inline GeoJSON** (zonal statistics, `transform_crs`, `spatial_join`,
+`overlay`, band-math zones) is also bounded by **geometry vertex count** and the
+**size of the request payload** — thousands of coordinates round-tripping
+through the model. A 3-KB raster window with a 3,400-vertex zone fails not
+because the data is big but because the *inline geometry payload* is.
+
+```
+Geometry vertex count / payload size?
+├─ small (a few hundred vertices) ...... pass inline as-is
+├─ large (thousands of vertices) ....... reduce first:
+│     geo-ops.simplify (shape-preserving, keeps concavity)
+│       → convex_hull (lossy superset; only if a coarse zone is OK)
+│       → bounding box (coarsest)
+└─ available as a file/URL ............. reference by path/href instead of
+                                         inlining (as geo-formats.to_geoparquet
+                                         already accepts for `src`)
+```
+
+Reduce the geometry **before** the call, and reproject the *reduced* geometry,
+not the full perimeter (`geometry-complexity`, `crs-handling` skills).
+
 ## Step 3 — In-process or delegate?
 
 After choosing an in-process path, apply the **delegation threshold**
@@ -81,6 +108,10 @@ After choosing an in-process path, apply the **delegation threshold**
   (`geo-raster`, `geo-query` over S3) before downloading.
 - **Local pure-function work** (CRS transforms, geometry ops, H3/S2 indexing)
   stays in `geo-ops` / `geo-index` — no network, no credentials.
+- **Reduce vector complexity before inlining.** For a high-vertex geometry,
+  `geo-ops.simplify` (shape-preserving) → `convex_hull` → bbox, or reference it
+  by path/href. Payload size is a scaling axis independent of dataset bytes
+  (`geometry-complexity` skill).
 - **Honor graceful degradation.** Multi-source discovery continues on per-source
   failure and labels results `partial=True` with provenance — don't fail the
   whole request because one source was down.

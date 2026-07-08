@@ -28,6 +28,7 @@ EXPECTED_CAPABILITIES = {
     "overlay",
     "buffer",
     "convex_hull",
+    "simplify",
 }
 
 

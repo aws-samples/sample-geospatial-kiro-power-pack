@@ -21,13 +21,26 @@ from geo_common.models import (
     CredentialSpec,
     OpennessTier,
 )
+from geo_common.raster_models import FeatureCollection
 from geo_common.server import BaseGeoServer
 
+from geo_foundation_models.asset_embedding import (
+    detect_change_from_assets as _detect_change_from_assets,
+    embed_asset as _embed_asset,
+    embed_assets as _embed_assets,
+)
 from geo_foundation_models.change import detect_change as _detect_change
+from geo_foundation_models.change_map import (
+    DEFAULT_MAX_TILES,
+    DEFAULT_TILE_SIZE,
+    change_map as _change_map,
+)
+from geo_foundation_models.remote_backend import backend_from_env
 from geo_foundation_models.clay_embeddings import (
     DEFAULT_LOOKUP_LIMIT,
     DEFAULT_MAX_LOOKUP_AREA_KM2,
     EmbeddingReader,
+    available_periods as _available_periods,
     lookup_embeddings as _lookup_embeddings,
 )
 from geo_foundation_models.embedding import (
@@ -35,6 +48,7 @@ from geo_foundation_models.embedding import (
     EmbeddingBackend,
     ModelRegistry,
     embed_tile as _embed_tile,
+    registry_from_env,
 )
 from geo_foundation_models.segmentation import (
     DEFAULT_MAX_MASK_PIXELS,
@@ -43,6 +57,8 @@ from geo_foundation_models.segmentation import (
 )
 from geo_foundation_models.models import (
     MAX_TILE_DIMENSION,
+    AssetChangeResult,
+    ChangeMapResult,
     EmbeddingRecord,
     EmbeddingResult,
     RasterTile,
@@ -59,6 +75,13 @@ INSTALL_COMMAND = "uvx geo-foundation-models"
 HF_TOKEN_KEY = "HF_TOKEN"
 HF_TOKEN_SOURCE = "Hugging Face (model weights)"
 
+#: Optional API key for a remote embedding endpoint (generic HTTPS transport).
+#: When a remote backend is configured (GEO_FM_EMBED_ENDPOINT_URL or
+#: GEO_FM_SAGEMAKER_ENDPOINT), real-weight embeddings replace the deterministic
+#: stand-in; the key is Optional so its absence never blocks startup (Req 16.5).
+EMBED_ENDPOINT_KEY = "GEO_FM_EMBED_API_KEY"
+EMBED_ENDPOINT_KEY_SOURCE = "Remote embedding endpoint (optional real-weight backend)"
+
 
 class GeoFoundationModelsServer(BaseGeoServer):
     """Foundation_Model_Server exposing geospatial embedding tools (Req 9).
@@ -70,7 +93,7 @@ class GeoFoundationModelsServer(BaseGeoServer):
 
     pillar = "C"
     server_name = "geo-foundation-models"
-    version = "0.2.0"
+    version = "0.3.0"
 
     def __init__(
         self,
@@ -93,9 +116,14 @@ class GeoFoundationModelsServer(BaseGeoServer):
         self.embedding_reader = embedding_reader
         self.max_lookup_area_km2 = max_lookup_area_km2
         self.register_tool("embed_tile", self.embed_tile)
+        self.register_tool("embed_asset", self.embed_asset)
+        self.register_tool("embed_assets", self.embed_assets)
         self.register_tool("detect_change", self.detect_change)
+        self.register_tool("detect_change_from_assets", self.detect_change_from_assets)
+        self.register_tool("change_map", self.change_map)
         self.register_tool("segment", self.segment)
         self.register_tool("lookup_embeddings", self.lookup_embeddings)
+        self.register_tool("available_embedding_periods", self.available_embedding_periods)
 
     # ------------------------------------------------------------------
     # Catalog + credential declaration (Req 2.1, 11.3, 16.1)
@@ -117,13 +145,43 @@ class GeoFoundationModelsServer(BaseGeoServer):
                 name="embed_tile",
                 pillar=self.pillar,
                 capability_description=(
-                    "Embed an imagery tile (<=1024x1024) with one selected "
-                    "geospatial foundation model (Clay, Prithvi-EO-2.0, "
-                    "SatCLIP, ...), returning a model-dimensioned vector. The "
-                    "default backend is a deterministic local stand-in "
-                    "(pluggable real-weight backends); the result's 'backend' "
-                    "field records which produced it. For real published Clay "
-                    "v1.5 vectors use lookup_embeddings."
+                    "Embed a tile (<=1024x1024) with one geospatial foundation "
+                    "model (Clay, Prithvi-EO-2.0, SatCLIP, ...), returning a "
+                    "model-dimensioned vector. The default backend is a "
+                    "deterministic stand-in with NO semantic structure, so it "
+                    "cannot rank change severity (wire a real-weight backend for "
+                    "that); the 'backend' and 'structure_only' fields record "
+                    "provenance. For real published Clay v1.5 vectors use "
+                    "lookup_embeddings."
+                ),
+                openness_tier=OpennessTier.OPEN,
+                provider_server=self.server_name,
+                installed=True,
+            ),
+            CatalogEntry(
+                name="embed_asset",
+                pillar=self.pillar,
+                capability_description=(
+                    "Embed a COG window server-side: read only the overlapping "
+                    "tiles of a raster href (s3://http(s)) over an optional "
+                    "bbox + bands by byte range, build the tile, and embed it "
+                    "with one model. Removes inline pixel plumbing. Same backend "
+                    "provenance caveats as embed_tile."
+                ),
+                openness_tier=OpennessTier.OPEN,
+                provider_server=self.server_name,
+                installed=True,
+            ),
+            CatalogEntry(
+                name="embed_assets",
+                pillar=self.pillar,
+                capability_description=(
+                    "Embed a window read across SEPARATE single-band COGs (one "
+                    "per band, in the model's band order) — the multi-band "
+                    "counterpart to embed_asset for catalogs like Earth Search "
+                    "where each band is its own .tif. Reads band 1 of each over "
+                    "a shared bbox by byte range, checks grid alignment, stacks, "
+                    "and embeds. Same backend provenance caveats as embed_tile."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,
@@ -135,7 +193,45 @@ class GeoFoundationModelsServer(BaseGeoServer):
                 capability_description=(
                     "Change detection between two equal-dimension embeddings "
                     "of the same area, returning a scalar change measure "
-                    "normalized to [0.0, 1.0]."
+                    "normalized to [0.0, 1.0]. NOTE: only meaningful when the "
+                    "embeddings come from a real-weight backend; with the "
+                    "deterministic stand-in any two differing tiles score ~0.5 "
+                    "and two structure-only (no-pixel) tiles score exactly 0.0, "
+                    "so a value is not a calibrated measurement there."
+                ),
+                openness_tier=OpennessTier.OPEN,
+                provider_server=self.server_name,
+                installed=True,
+            ),
+            CatalogEntry(
+                name="detect_change_from_assets",
+                pillar=self.pillar,
+                capability_description=(
+                    "Change between two dates over the same window in ONE call: "
+                    "read+embed each server-side, then compare — no passing a "
+                    "1024-float vector by hand. Two input modes: single "
+                    "multi-band COG per date (raster_href_a/b + bands), or "
+                    "separate single-band COGs per date (assets_a/assets_b, "
+                    "e.g. Earth Search's per-band .tifs). Returns the [0,1] "
+                    "measure with backend provenance and a 'caveat' whenever it "
+                    "is not calibrated (deterministic stand-in / structure-only)."
+                ),
+                openness_tier=OpennessTier.OPEN,
+                provider_server=self.server_name,
+                installed=True,
+            ),
+            CatalogEntry(
+                name="change_map",
+                pillar=self.pillar,
+                capability_description=(
+                    "Per-tile change GRID between two co-registered COG hrefs "
+                    "over an AOI: tiles the window, reads+embeds both dates per "
+                    "tile server-side, and reduces each to a [0,1] change "
+                    "measure. Only meaningful with a real-weight backend — under "
+                    "the deterministic stand-in the grid is ~0.5 noise, so it "
+                    "sets calibrated=false + a caveat (or refuses when "
+                    "require_real_backend). Tile count is bounded; route large "
+                    "AOIs to aws-geo-compute."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,
@@ -168,6 +264,18 @@ class GeoFoundationModelsServer(BaseGeoServer):
                 provider_server=self.server_name,
                 installed=True,
             ),
+            CatalogEntry(
+                name="available_embedding_periods",
+                pillar=self.pillar,
+                capability_description=(
+                    "List the months ('YYYY-MM') for which published Clay v1.5 "
+                    "embeddings exist, so a before/after outside them is known "
+                    "to be unusable before calling lookup_embeddings."
+                ),
+                openness_tier=OpennessTier.OPEN,
+                provider_server=self.server_name,
+                installed=True,
+            ),
         ]
 
     def required_credentials(self) -> "List[CredentialSpec]":
@@ -183,7 +291,12 @@ class GeoFoundationModelsServer(BaseGeoServer):
                 source=HF_TOKEN_SOURCE,
                 mcp_json_key=HF_TOKEN_KEY,
                 classification=CredentialClassification.OPTIONAL,
-            )
+            ),
+            CredentialSpec(
+                source=EMBED_ENDPOINT_KEY_SOURCE,
+                mcp_json_key=EMBED_ENDPOINT_KEY,
+                classification=CredentialClassification.OPTIONAL,
+            ),
         ]
 
     async def embed_tile(self, *, tile: RasterTile, model: str) -> EmbeddingResult:
@@ -205,6 +318,147 @@ class GeoFoundationModelsServer(BaseGeoServer):
             max_dimension=self.max_dimension,
         )
 
+
+    async def embed_asset(
+        self,
+        *,
+        raster_href: str,
+        model: str,
+        window_bbox: Optional[List[float]] = None,
+        bands: Optional[List[int]] = None,
+        latlon: Optional[List[float]] = None,
+        acquired: Optional[str] = None,
+    ) -> EmbeddingResult:
+        """Read a COG window by byte range and embed it server-side (Req 9.1).
+
+        Reads only the tiles overlapping ``window_bbox`` (in the asset's CRS;
+        omit for the whole asset) for the selected ``bands`` (default ``[1]``),
+        builds the tile, and embeds it with ``model`` — removing the need to
+        inline pixels. Same validation and backend-provenance contract as
+        ``embed_tile``.
+        """
+        return await _embed_asset(
+            raster_href=raster_href,
+            model=model,
+            window_bbox=window_bbox,
+            bands=tuple(bands) if bands else (1,),
+            latlon=latlon,
+            acquired=acquired,
+            registry=self.registry,
+            backend=self.backend,
+            http=self.http,
+            supported_formats=self.supported_formats,
+            max_dimension=self.max_dimension,
+        )
+
+    async def embed_assets(
+        self,
+        *,
+        assets: List[str],
+        model: str,
+        window_bbox: Optional[List[float]] = None,
+        latlon: Optional[List[float]] = None,
+        acquired: Optional[str] = None,
+    ) -> EmbeddingResult:
+        """Embed a window across separate single-band COGs, one per band.
+
+        ``assets`` is an ordered list of single-band COG hrefs in the model's
+        band order (e.g. Sentinel-2 bands as separate ``.tif`` files on Earth
+        Search). Band 1 of each is read over ``window_bbox`` (assets' CRS; omit
+        for the whole scene), the bands are stacked in order into one tile, and
+        embedded with ``model``. The assets must share one pixel grid over the
+        window; a mismatch raises a ``ValidationError``.
+        """
+        return await _embed_assets(
+            assets=assets,
+            model=model,
+            window_bbox=window_bbox,
+            latlon=latlon,
+            acquired=acquired,
+            registry=self.registry,
+            backend=self.backend,
+            http=self.http,
+            supported_formats=self.supported_formats,
+            max_dimension=self.max_dimension,
+        )
+
+    async def detect_change_from_assets(
+        self,
+        *,
+        model: str,
+        raster_href_a: Optional[str] = None,
+        raster_href_b: Optional[str] = None,
+        assets_a: Optional[List[str]] = None,
+        assets_b: Optional[List[str]] = None,
+        window_bbox: Optional[List[float]] = None,
+        bands: Optional[List[int]] = None,
+    ) -> AssetChangeResult:
+        """Change between two dates over the same window, in one call.
+
+        Supply exactly one input mode: **single multi-band COG per date**
+        (``raster_href_a``/``raster_href_b`` + ``bands``), or **separate
+        single-band COGs per date** (``assets_a``/``assets_b`` — ordered per-band
+        href lists, e.g. Sentinel-2 on Earth Search). Both dates are read+embedded
+        server-side over the same ``window_bbox`` and compared, so no 1024-float
+        vector is ever passed by hand. Returns the ``detect_change`` measure with
+        backend provenance and a ``caveat`` when the score is not calibrated
+        (deterministic stand-in or a structure-only read).
+        """
+        return await _detect_change_from_assets(
+            raster_href_a=raster_href_a,
+            raster_href_b=raster_href_b,
+            assets_a=assets_a,
+            assets_b=assets_b,
+            model=model,
+            window_bbox=window_bbox,
+            bands=tuple(bands) if bands else (1,),
+            registry=self.registry,
+            backend=self.backend,
+            http=self.http,
+            supported_formats=self.supported_formats,
+            max_dimension=self.max_dimension,
+        )
+
+    async def change_map(
+        self,
+        *,
+        raster_href_a: str,
+        raster_href_b: str,
+        model: str,
+        aoi_bbox: List[float],
+        tile_size: int = DEFAULT_TILE_SIZE,
+        bands: Optional[List[int]] = None,
+        zones: Optional[FeatureCollection] = None,
+        require_real_backend: bool = False,
+        max_tiles: int = DEFAULT_MAX_TILES,
+    ) -> ChangeMapResult:
+        """Per-tile change grid between two co-registered COGs over an AOI.
+
+        Tiles ``aoi_bbox`` (in the assets' CRS) into ``tile_size``-pixel tiles,
+        reads+embeds both dates per tile server-side, and reduces each to a
+        ``[0,1]`` change measure. Under the deterministic stand-in backend the
+        grid is uncalibrated (~0.5 noise): the result carries ``calibrated=false``
+        and a ``caveat``, or the call refuses when ``require_real_backend`` is
+        set. The tile count is bounded by ``max_tiles``. When ``zones`` (a
+        GeoJSON FeatureCollection in the assets' CRS) is supplied, the grid is
+        also reduced per zone (mean/max change over the tiles each zone contains).
+        """
+        return await _change_map(
+            raster_href_a=raster_href_a,
+            raster_href_b=raster_href_b,
+            model=model,
+            aoi_bbox=aoi_bbox,
+            tile_size=tile_size,
+            bands=tuple(bands) if bands else (1,),
+            zones=zones,
+            require_real_backend=require_real_backend,
+            max_tiles=max_tiles,
+            registry=self.registry,
+            backend=self.backend,
+            http=self.http,
+            supported_formats=self.supported_formats,
+            max_dimension=self.max_dimension,
+        )
 
     async def detect_change(
         self, *, embedding_a: List[float], embedding_b: List[float]
@@ -269,6 +523,16 @@ class GeoFoundationModelsServer(BaseGeoServer):
             max_area_km2=self.max_lookup_area_km2,
         )
 
+    async def available_embedding_periods(self) -> List[str]:
+        """List the months (``"YYYY-MM"``) with published Clay v1.5 embeddings.
+
+        The open Clay v1.5 dataset only publishes a few monthly partitions, so
+        the real-embedding ``lookup_embeddings`` path is unusable outside them.
+        Calling this first lets an agent see the coverage (currently June 2024
+        and June 2025) instead of inferring it from an empty lookup result.
+        """
+        return _available_periods()
+
 
 def main() -> None:
     """Console entry point: serve geo-foundation-models over MCP stdio.
@@ -276,5 +540,14 @@ def main() -> None:
     Runs the startup credential guard, then serves this server's registered
     tools over stdin/stdout via the shared geo-common MCP runtime until the
     client disconnects.
+
+    If a remote embedding endpoint is configured in the environment
+    (``GEO_FM_EMBED_ENDPOINT_URL`` or ``GEO_FM_SAGEMAKER_ENDPOINT``), a real-
+    weight backend is wired in so ``embed_*`` and ``change_map`` produce
+    calibrated results; otherwise the honest deterministic stand-in backend is
+    used. Extra models declared in ``GEO_FM_EXTRA_MODELS`` are registered so a
+    bring-your-own model's dimension is selectable without code.
     """
-    GeoFoundationModelsServer().run()
+    GeoFoundationModelsServer(
+        registry=registry_from_env(), backend=backend_from_env()
+    ).run()

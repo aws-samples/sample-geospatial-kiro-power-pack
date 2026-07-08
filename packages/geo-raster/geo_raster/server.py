@@ -38,6 +38,7 @@ from geo_raster.window_reader import (
     read_window as _read_window,
 )
 from geo_raster.zonal import zonal_statistics as _zonal_statistics
+from geo_raster.zonal_band_math import zonal_band_math as _zonal_band_math
 
 __all__ = ["GeoRasterServer", "INSTALL_COMMAND", "main"]
 
@@ -48,11 +49,13 @@ INSTALL_COMMAND = "uvx geo-raster"
 class GeoRasterServer(BaseGeoServer):
     """Pillar B (expansion) server for raster windowed reads + analytics.
 
-    Exposes ``zonal_statistics`` (per-zone min/max/mean/sum/count with a no-data
+    Exposes ``zonal_statistics`` (per-zone min/max/mean/sum/count/std with a no-data
     indication for zones with no overlapping cells, Requirements 8.7/8.8),
     ``read_window`` (return only the pixels inside a requested COG window via S3
-    byte ranges, Requirements 7.2/12.1), and ``band_math`` (NDVI/NDWI/NBR-style
-    expressions over a windowed read). All outbound reads share the inherited
+    byte ranges, Requirements 7.2/12.1), ``band_math`` (NDVI/NDWI/NBR-style
+    expressions over a windowed read), and ``zonal_band_math`` (a per-pixel
+    band-math index across separate single-band COGs reduced to per-zone
+    statistics). All outbound reads share the inherited
     :class:`HttpClient`, so they inherit retry/backoff and the 30-second
     per-request timeout; an S3 read failure after those retries aborts with
     local storage unchanged (Requirement 12.6).
@@ -60,7 +63,7 @@ class GeoRasterServer(BaseGeoServer):
 
     pillar = "B"
     server_name = "geo-raster"
-    version = "0.2.0"
+    version = "0.3.0"
 
     #: Both AWS keys are Optional: public raster buckets work without them
     #: (bundle-manifest.json ``geo-raster`` credential block).
@@ -88,6 +91,7 @@ class GeoRasterServer(BaseGeoServer):
         self.register_tool("zonal_statistics", self.zonal_statistics)
         self.register_tool("read_window", self.read_window)
         self.register_tool("band_math", self.band_math)
+        self.register_tool("zonal_band_math", self.zonal_band_math)
 
     # ------------------------------------------------------------------
     # Catalog + credential declaration (Requirements 2.1, 11.3, 16.1)
@@ -101,9 +105,10 @@ class GeoRasterServer(BaseGeoServer):
                 pillar=self.pillar,
                 capability_description=(
                     "Compute per-zone raster statistics (minimum, maximum, mean, "
-                    "sum, count) over a set of vector zones, reading only the "
-                    "overlapping window directly from S3 byte ranges; zones with "
-                    "no overlapping cells get a no-data indication."
+                    "sum, count, population standard deviation) over a set of "
+                    "vector zones, reading only the overlapping window directly "
+                    "from S3 byte ranges; zones with no overlapping cells get a "
+                    "no-data indication."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,
@@ -134,6 +139,20 @@ class GeoRasterServer(BaseGeoServer):
                 provider_server=self.server_name,
                 install_command=INSTALL_COMMAND,
             ),
+            CatalogEntry(
+                name="zonal_band_math",
+                pillar=self.pillar,
+                capability_description=(
+                    "Compute a true per-pixel band-math index (NDVI/NDWI/NBR) "
+                    "across multiple single-band COGs bound to B<n> tokens, then "
+                    "reduce it to per-zone statistics (min/max/mean/sum/count) "
+                    "over vector zones in one call. Bridges indices whose bands "
+                    "live in separate assets (e.g. Sentinel-2 B08 + B04)."
+                ),
+                openness_tier=OpennessTier.OPEN,
+                provider_server=self.server_name,
+                install_command=INSTALL_COMMAND,
+            ),
         ]
 
     def required_credentials(self) -> List[CredentialSpec]:
@@ -154,6 +173,12 @@ class GeoRasterServer(BaseGeoServer):
         reader: Optional[ByteRangeReader] = None,
     ) -> List[ZoneStat]:
         """Return per-zone statistics (Requirements 8.7, 8.8).
+
+        ``zones`` is inline GeoJSON, so a very high-vertex perimeter can make
+        this call slow or fail on the request payload alone — independent of the
+        (often small) raster window. Reduce the geometry first with
+        ``geo-ops.simplify`` (shape-preserving) → ``convex_hull`` → bbox, and
+        reproject the reduced geometry into the raster CRS.
 
         Validation errors for malformed stats/zones (Requirement 8.10
         validation surface) propagate unchanged, as does the ``network`` error
@@ -219,6 +244,42 @@ class GeoRasterServer(BaseGeoServer):
                 asset_href=asset_href,
                 expression=expression,
                 window=window,
+                http=self.http,
+                region=self.region,
+            )
+        except GeoError:
+            raise
+        except Exception as exc:  # pragma: no cover - defensive catch-all
+            raise self.map_error(exc, source=self.server_name) from exc
+
+    async def zonal_band_math(
+        self,
+        *,
+        assets: dict,
+        expression: str,
+        zones: FeatureCollection,
+        stats: Optional[Sequence[str]] = None,
+    ) -> List[ZoneStat]:
+        """Per-pixel multi-asset band-math index reduced to zonal statistics.
+
+        Binds each ``B<n>`` token in ``expression`` to its own single-band COG
+        in ``assets`` (e.g. ``{"B08": ".../B08.tif", "B04": ".../B04.tif"}``),
+        computes the index per pixel over the union window of ``zones``, and
+        returns per-zone ``min``/``max``/``mean``/``sum``/``count`` — a true
+        per-pixel distribution, not a ratio of means. Zones must already be in
+        the assets' CRS. As with ``zonal_statistics``, ``zones`` is inline
+        GeoJSON: reduce a high-vertex perimeter with ``geo-ops.simplify`` →
+        ``convex_hull`` → bbox before calling so the payload stays small.
+        Validation errors (Requirement 7.12) propagate
+        unchanged; any other failure is mapped onto the shared ``Error_Taxonomy``
+        (Requirement 11.2).
+        """
+        try:
+            return await _zonal_band_math(
+                assets=assets,
+                expression=expression,
+                zones=zones,
+                stats=stats,
                 http=self.http,
                 region=self.region,
             )

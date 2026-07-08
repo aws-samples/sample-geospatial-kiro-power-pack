@@ -44,7 +44,17 @@ from geo_foundation_models.server import (
     GeoFoundationModelsServer,
 )
 
-EXPECTED_TOOLS = {"embed_tile", "detect_change", "segment", "lookup_embeddings"}
+EXPECTED_TOOLS = {
+    "embed_tile",
+    "embed_asset",
+    "embed_assets",
+    "change_map",
+    "detect_change",
+    "detect_change_from_assets",
+    "segment",
+    "lookup_embeddings",
+    "available_embedding_periods",
+}
 
 
 def _tile(width: int = 8, height: int = 8, bands: int = 1, fmt: str = "GTiff", data=None) -> RasterTile:
@@ -80,11 +90,14 @@ def test_catalog_entries_are_open_pillar_c_and_self_provided() -> None:
 
 
 def test_required_credentials_declare_optional_hf_token() -> None:
-    """Req 16.1: the single HF_TOKEN credential is declared and Optional."""
+    """Req 16.1: the declared credentials (HF_TOKEN + remote endpoint key) are Optional."""
     server = GeoFoundationModelsServer()
     specs = server.required_credentials()
 
-    assert {spec.mcp_json_key for spec in specs} == {HF_TOKEN_KEY}
+    # HF_TOKEN (gated weights) plus the optional remote-embedding endpoint key;
+    # both Optional so neither ever blocks startup (Req 16.5).
+    assert HF_TOKEN_KEY in {spec.mcp_json_key for spec in specs}
+    assert "GEO_FM_EMBED_API_KEY" in {spec.mcp_json_key for spec in specs}
     assert all(
         spec.classification is CredentialClassification.OPTIONAL for spec in specs
     )

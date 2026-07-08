@@ -65,7 +65,12 @@ no longer matches.
 5. **Analyze.** Run the analysis step on the windowed data — for example
    `geo-foundation-models.embed_tile` for embeddings or
    `geo-raster.zonal_statistics` for summaries — keeping discover → process →
-   analyze ordering.
+   analyze ordering. When the analysis reduces a raster over a *discovered* AOI
+   or zone geometry (a returned item footprint, a basin, an admin boundary),
+   reduce that geometry before feeding it in: `geo-ops.simplify` (shape-
+   preserving) → `convex_hull` → bbox, and reproject the *reduced* geometry to
+   the raster CRS — don't pass a raw high-vertex perimeter straight through
+   (`geometry-complexity`, `zonal-statistics`).
 6. **Summarize provenance.** Report every source used in the discover, process,
    and analyze steps by source identifier (Requirement 4.4). If any source
    degraded or timed out, label the result partial and enumerate contributing

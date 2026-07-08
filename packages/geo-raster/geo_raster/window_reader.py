@@ -165,8 +165,16 @@ async def band_math(
     out: List[float] = [fill] * (width * height)
 
     band_grids = {b: block.band(b) for b in referenced}
+    # Map each literal identifier in the expression (e.g. "B08", "B8") to its
+    # band number, so the evaluator can look up env by the exact node.id and
+    # both zero-padded and unpadded spellings resolve (not just "B<int>").
+    id_to_band = {
+        name.id: int(_BAND_TOKEN.match(name.id).group(1))
+        for name in ast.walk(node)
+        if isinstance(name, ast.Name) and _BAND_TOKEN.match(name.id)
+    }
     for i in range(width * height):
-        env: Dict[str, float] = {f"B{b}": band_grids[b][i] for b in referenced}
+        env: Dict[str, float] = {ident: band_grids[b][i] for ident, b in id_to_band.items()}
         # nodata-in -> nodata-out so masked pixels never contaminate the result.
         if nodata is not None and any(v == nodata for v in env.values()):
             out[i] = fill

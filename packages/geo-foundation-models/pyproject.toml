@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "geo-foundation-models"
-version = "0.2.0"
+version = "0.3.0"
 description = "Pillar C (MVP) MCP server: geospatial foundation-model embeddings, change detection, and segmentation (Clay, Prithvi-EO-2.0, SatCLIP, SAMGeo)."
 requires-python = ">=3.10"
 license = "MIT-0"
@@ -35,6 +35,11 @@ dev = ["pytest>=8.0,<9", "pytest-asyncio>=0.23,<1", "hypothesis>=6.100"]
 # the open LGND Clay v1.5 GeoParquet dataset over anonymous S3. Not needed when
 # a custom embedding reader is injected, or for the rest of the server.
 clay-lookup = ["pyarrow>=14"]
+# Optional: the AWS SageMaker transport for the real-weight RemoteEndpointBackend
+# (embed via a named SageMaker runtime endpoint). The generic HTTPS transport
+# needs only httpx (already a core dependency), so this extra is required solely
+# for the SageMaker path.
+remote = ["boto3>=1.34"]
 
 [project.scripts]
 geo-foundation-models = "geo_foundation_models.server:main"

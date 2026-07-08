@@ -29,6 +29,7 @@ from geo_ops.geometry import (
     buffer as _buffer,
     convex_hull as _convex_hull,
     overlay as _overlay,
+    simplify as _simplify,
     spatial_join as _spatial_join,
     validate_geometry as _validate_geometry,
 )
@@ -52,7 +53,7 @@ class GeoOpsServer(BaseGeoServer):
 
     pillar = "B"
     server_name = "geo-ops"
-    version = "0.2.0"
+    version = "0.3.0"
 
     #: The native capabilities ``geo-ops`` implements itself (PyProj/Shapely).
     #: Each is an open-tier catalog entry provided by ``geo-ops`` (Req 2.1).
@@ -63,6 +64,7 @@ class GeoOpsServer(BaseGeoServer):
         ("overlay", "Compute a geometric set operation (intersection/union/difference/...) between feature collections."),
         ("buffer", "Compute a buffer polygon around a geometry at a given distance (Shapely/GEOS)."),
         ("convex_hull", "Compute the convex hull of a geometry (Shapely/GEOS)."),
+        ("simplify", "Reduce a geometry's vertex count while preserving its shape (Douglas-Peucker; Shapely/GEOS)."),
     )
 
     def __init__(self, http=None) -> None:
@@ -73,6 +75,7 @@ class GeoOpsServer(BaseGeoServer):
         self.register_tool("overlay", self.overlay)
         self.register_tool("buffer", self.buffer)
         self.register_tool("convex_hull", self.convex_hull)
+        self.register_tool("simplify", self.simplify)
 
     async def transform_crs(
         self,
@@ -87,6 +90,10 @@ class GeoOpsServer(BaseGeoServer):
         to a target CRS and back reproduces the original within the documented
         tolerance (Req 15.2; design Property 1). An unknown CRS or malformed
         coordinates raise a taxonomy ``ValidationError``.
+
+        For a high-vertex geometry, ``simplify`` it first and reproject the
+        reduced result — transforming thousands of vertices you are about to
+        discard is wasted work and bloats the payload.
         """
         return _transform_crs(
             geometry, src_crs=src_crs, dst_crs=dst_crs, source=self.server_name
@@ -108,7 +115,11 @@ class GeoOpsServer(BaseGeoServer):
         right: FeatureCollection,
         predicate: str = "intersects",
     ) -> FeatureCollection:
-        """Attribute-join ``left`` to ``right`` by a spatial ``predicate``."""
+        """Attribute-join ``left`` to ``right`` by a spatial ``predicate``.
+
+        Both collections are inline GeoJSON; reduce high-vertex geometries with
+        ``simplify`` first to keep the request payload small.
+        """
         return _spatial_join(left, right, predicate=predicate, source=self.server_name)
 
     async def overlay(
@@ -118,7 +129,11 @@ class GeoOpsServer(BaseGeoServer):
         b: FeatureCollection,
         op: str,
     ) -> FeatureCollection:
-        """Compute a geometric set operation (``op``) between ``a`` and ``b``."""
+        """Compute a geometric set operation (``op``) between ``a`` and ``b``.
+
+        Both collections are inline GeoJSON; reduce high-vertex geometries with
+        ``simplify`` first to keep the request payload small.
+        """
         return _overlay(a, b, op=op, source=self.server_name)
 
     async def buffer(
@@ -142,6 +157,32 @@ class GeoOpsServer(BaseGeoServer):
     async def convex_hull(self, *, geometry: GeoJSONGeometry) -> GeoJSONGeometry:
         """Compute the convex hull of ``geometry`` (Shapely/GEOS)."""
         return _convex_hull(geometry, source=self.server_name)
+
+    async def simplify(
+        self,
+        *,
+        geometry: GeoJSONGeometry,
+        tolerance: float,
+        preserve_topology: bool = True,
+    ) -> GeoJSONGeometry:
+        """Reduce ``geometry``'s vertex count while preserving its shape.
+
+        Douglas-Peucker simplification (Shapely/GEOS): every point of the result
+        stays within ``tolerance`` (in the geometry's coordinate units) of the
+        input, so concavity is preserved — the shape-preserving alternative to
+        ``convex_hull`` for shrinking a high-vertex perimeter before an inline
+        geometry op. ``tolerance=0`` returns an equivalent geometry;
+        ``preserve_topology=True`` (default) avoids invalid/collapsed output. A
+        non-numeric/non-finite/negative ``tolerance``, a non-boolean
+        ``preserve_topology``, or unparseable geometry raises a taxonomy
+        ``ValidationError``.
+        """
+        return _simplify(
+            geometry,
+            tolerance=tolerance,
+            preserve_topology=preserve_topology,
+            source=self.server_name,
+        )
 
     # ------------------------------------------------------------------
     # Catalog + credential declaration (Req 2.1, 11.3)

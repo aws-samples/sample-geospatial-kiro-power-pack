@@ -35,6 +35,10 @@ datasets that may live in different reference systems.
 5. **Choose the right CRS for the operation.** Geographic CRS (degrees) for
    storage/exchange; an appropriate projected CRS (meters) for distance, area,
    and buffering. Computing area/length in degrees is a bug.
+6. **Reproject the reduced geometry, not the full one.** When a geometry is
+   high-vertex, simplify it first and transform the *reduced* result — don't
+   reproject thousands of vertices you are about to discard (`simplify` →
+   `convex_hull` → bbox; see the `geometry-complexity` skill).
 
 ## The axis-order trap
 

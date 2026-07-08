@@ -152,3 +152,37 @@ async def test_band_math_only_reads_referenced_bands() -> None:
     assert not (band1_tile_offsets & fetched)
     assert not (band3_tile_offsets & fetched)
     assert result.value(0, 0, 1) == pytest.approx(b2[1] * 2)
+
+
+async def test_zero_padded_band_tokens_resolve() -> None:
+    """Zero-padded tokens (B01/B02, as Sentinel-2 uses B04/B08) evaluate correctly.
+
+    The evaluator looks up the literal identifier, so the per-pixel env must be
+    keyed by the exact token spelling in the expression, not a normalized
+    ``B<int>``. Regression guard for the identifier-keyed env.
+    """
+    width = height = 8
+    red = [float(1 + (r * width + c) % 5) for r in range(height) for c in range(width)]
+    nir = [float(10 + (r * width + c) % 7) for r in range(height) for c in range(width)]
+    data = build_cog(
+        width=width,
+        height=height,
+        tile_width=8,
+        tile_height=8,
+        bands=[red, nir],
+        dtype="float32",
+    )
+
+    reader = RecordingByteRangeReader(data)
+    # Band 1 = red -> B01, band 2 = nir -> B02 (both zero-padded).
+    result = await band_math(
+        asset_href="s3://amzn-s3-demo-bucket/scene.tif",
+        expression="(B02 - B01) / (B02 + B01)",
+        window={"col_off": 0, "row_off": 0, "width": 4, "height": 4},
+        reader=reader,
+    )
+    for r in range(4):
+        for c in range(4):
+            i = r * width + c
+            expected = (nir[i] - red[i]) / (nir[i] + red[i])
+            assert result.value(0, r, c) == pytest.approx(expected)

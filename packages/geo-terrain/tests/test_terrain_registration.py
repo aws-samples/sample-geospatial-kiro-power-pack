@@ -63,7 +63,13 @@ def _server(handler: Any) -> GeoTerrainServer:
 
 def test_catalog_entry_registers_geo_terrain_as_open_provider() -> None:
     entries = GeoTerrainServer().catalog_entries()
-    assert {e.name for e in entries} == {"elevation", "slope", "hillshade"}
+    assert {e.name for e in entries} == {
+        "elevation",
+        "slope",
+        "aspect",
+        "hillshade",
+        "dem_zonal",
+    }
     for entry in entries:
         assert entry.pillar == "A"
         assert entry.provider_server == "geo-terrain"
