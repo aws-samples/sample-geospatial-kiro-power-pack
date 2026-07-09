@@ -218,8 +218,8 @@ The companions above are open-source, locally-run tools. The servers below are
 redistributed with it, and not affiliated with or endorsed by AWS**. Each needs
 its own account/license and is configured by you. They are listed for awareness
 because they offer managed, at-scale capabilities the open servers here do not.
-Unlike the pack's local `uvx` servers, these are remote MCP endpoints. Esri and
-Wherobots are members of the AWS Partner Network.
+Unlike the pack's local `uvx` servers, these are remote MCP endpoints. Esri,
+Wherobots, and Felt are members of the AWS Partner Network.
 
 #### Esri
 
@@ -286,6 +286,25 @@ Esri offers two hosted MCP servers (both public beta):
   }
   ```
   See the [Wherobots Kiro setup docs](https://docs.wherobots.com/develop/agentic-tools/kiro).
+
+#### Felt
+
+- **Felt MCP** — gives an agent the human-facing end of the workflow: a
+  collaborative web map where the artifacts this pack produces get seen, styled,
+  and reviewed. Create and share maps; add layers from files, URLs, or cloud
+  data warehouses (Postgres/PostGIS, Snowflake, BigQuery, Redshift, Databricks,
+  SQL Server); run spatial queries against live layers; style them with Felt
+  Style Language; and drop annotations for teammates to react to — the review
+  step between an agent's output and its next iteration. Commercial with a free
+  tier; requires a Felt workspace, and Felt is available on AWS Marketplace and
+  AWS GovCloud (US). Remote MCP endpoint with browser-based OAuth (no API keys
+  to manage), configured in Kiro directly through the `mcpServers` `url` schema:
+  ```json
+  "felt": {
+    "url": "https://felt.com/mcp"
+  }
+  ```
+  See the [Felt MCP server docs](https://help.felt.com/felt-ai/mcp).
 
 ---
 
