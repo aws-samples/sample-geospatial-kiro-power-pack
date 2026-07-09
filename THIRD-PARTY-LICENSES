@@ -96,6 +96,14 @@ External MCP servers (referenced / documented as companions; not redistributed)
               connects to with their own Wherobots account; not bundled, not
               redistributed, not affiliated with or endorsed by AWS.
 
+  Felt MCP    Commercial / proprietary (Felt)
+              https://help.felt.com/felt-ai/mcp
+              Documented as an optional, third-party hosted companion (a
+              collaborative web map for reviewing, styling, and sharing the
+              pack's outputs). A remote MCP service the user connects to with
+              their own Felt workspace (browser OAuth); not bundled, not
+              redistributed, not affiliated with or endorsed by AWS.
+
 --------------------------------------------------------------------------------
 Data sources and model attribution
 --------------------------------------------------------------------------------
