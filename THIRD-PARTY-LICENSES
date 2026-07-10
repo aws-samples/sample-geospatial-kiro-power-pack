@@ -37,7 +37,9 @@ Optional extras (installed only when the corresponding extra is enabled):
   lancedb                       Apache-2.0     (geo-embedding-search[lancedb])
   opensearch-py                 Apache-2.0     (geo-embedding-search[opensearch];
                                                client for a managed OpenSearch)
-  pdal (PDAL Python bindings)   BSD-3-Clause
+  laspy                         BSD-3-Clause   (geo-pointcloud[copc])
+  lazrs                         Apache-2.0     (geo-pointcloud[copc]; LAZ codec)
+  pdal (PDAL Python bindings)   BSD-3-Clause   (geo-pointcloud[pdal])
   redshift-connector            Apache-2.0
   snowflake-connector-python    Apache-2.0
   databricks-sql-connector      Apache-2.0

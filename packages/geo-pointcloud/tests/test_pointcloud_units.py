@@ -16,10 +16,10 @@ from geo_common.errors import ErrorCategory, GeoError
 from geo_common.models import CredentialClassification, OpennessTier
 
 from geo_pointcloud import (
-    COPC_FORMAT,
+    LOCAL_CONTAINER_FORMAT,
     GeoWindow,
     GeoPointcloudServer,
-    LocalCopcBackend,
+    LocalContainerBackend,
     PointCloudChunk,
     PointRecord,
     read_pointcloud,
@@ -49,7 +49,9 @@ def test_write_then_read_preserves_point_set(tmp_path) -> None:
     dst = str(tmp_path / "cloud.copc")
 
     result = write_pointcloud(points=chunk, dst_href=dst)
-    assert result.format == COPC_FORMAT
+    # With no [pdal]/[copc] write engine, the default writes the portable local
+    # container (honestly labelled, not "COPC").
+    assert result.format == LOCAL_CONTAINER_FORMAT
     assert result.valid is True
     assert result.point_count == 4
     assert os.path.exists(dst)
@@ -137,8 +139,8 @@ def test_local_backend_morton_orders_but_preserves_set(tmp_path) -> None:
         points=[PointRecord(x=float(i % 7), y=float((i * 3) % 5), z=float(i)) for i in range(20)]
     )
     dst = str(tmp_path / "morton.copc")
-    LocalCopcBackend().write(chunk, dst)
-    back = LocalCopcBackend().read(dst, None)
+    LocalContainerBackend().write(chunk, dst)
+    back = LocalContainerBackend().read(dst, None)
     assert _as_set(back) == _as_set(chunk)
     assert back.point_count == chunk.point_count
 
