@@ -44,8 +44,10 @@ from geo_common.server import BaseGeoServer
 from geo_stac.search import (
     DEFAULT_STAC_API_URL,
     KNOWN_STAC_ENDPOINTS,
+    CollectionList,
     StacItem,
     StacSearchResult,
+    list_collections,
     stac_search,
     stac_search_multi,
 )
@@ -64,7 +66,7 @@ class GeoStacServer(BaseGeoServer):
 
     pillar = "A"
     server_name = "geo-stac"
-    version = "0.2.0"
+    version = "0.3.0"
 
     #: ``geo-stac`` wraps open STAC APIs (Requirement 7.9 MVP). The two keys
     #: below are *Optional*: open access works without them, but configuring
@@ -101,6 +103,7 @@ class GeoStacServer(BaseGeoServer):
         self.api_url = api_url
         self.register_tool("stac_search", self.stac_search)
         self.register_tool("stac_search_multi", self.stac_search_multi)
+        self.register_tool("list_collections", self.list_collections)
 
     # ------------------------------------------------------------------
     # Catalog + credential declaration (Requirements 2.1, 11.3, 16.1)
@@ -120,11 +123,12 @@ class GeoStacServer(BaseGeoServer):
                 name="stac_search",
                 pillar=self.pillar,
                 capability_description=(
-                    "Search STAC catalogs (Earth Search / Element84, Microsoft "
-                    "Planetary Computer, NASA CMR-STAC, Copernicus Data Space, "
-                    "USGS) by bounding box and datetime range, returning matching "
-                    "items with asset references and spatio-temporal metadata "
-                    "(capped at 1,000 items)."
+                    "Search a STAC catalog (default Earth Search / Element 84, "
+                    "or any STAC-API endpoint) by bounding box and datetime "
+                    "range, returning matching items with asset references and "
+                    "spatio-temporal metadata (capped at 1,000). Pass "
+                    "'collections' to scope the search; Planetary Computer and "
+                    "CMR-STAC return nothing without it."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,
@@ -133,11 +137,28 @@ class GeoStacServer(BaseGeoServer):
                 name="stac_search_multi",
                 pillar=self.pillar,
                 capability_description=(
-                    "Federated STAC search across multiple catalogs (Earth "
-                    "Search, Planetary Computer, CMR-STAC, Copernicus, USGS) "
-                    "concurrently, merging and de-duplicating results with "
-                    "per-source provenance and graceful degradation (partial "
-                    "results when a source is unavailable)."
+                    "Federated STAC search across catalogs concurrently — Earth "
+                    "Search + USGS (Landsat) answer bbox/datetime directly; "
+                    "Planetary Computer and CMR-STAC (NASA LPCLOUD: HLS/MODIS) "
+                    "need a 'collections' filter; Copernicus Data Space serves "
+                    "CLMS land-monitoring products (not raw Sentinel). Round-"
+                    "robin merges + de-duplicates with per-source provenance and "
+                    "graceful degradation (partial results when a source is "
+                    "unavailable). Collection ids differ per catalog."
+                ),
+                openness_tier=OpennessTier.OPEN,
+                provider_server=self.server_name,
+            ),
+            CatalogEntry(
+                name="list_collections",
+                pillar=self.pillar,
+                capability_description=(
+                    "Discover what a STAC catalog offers: list its collections "
+                    "(id + title + description + spatial/temporal extent), "
+                    "optionally filtered by a substring (e.g. 'sentinel'). The "
+                    "ids are exactly what stac_search's 'collections' accepts — "
+                    "call this to find the right collection for Planetary "
+                    "Computer / CMR-STAC, which need a collections filter."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,
@@ -229,6 +250,41 @@ class GeoStacServer(BaseGeoServer):
             endpoints=dict(KNOWN_STAC_ENDPOINTS),
             dedupe=dedupe,
         )
+
+    async def list_collections(
+        self,
+        *,
+        catalog: Optional[str] = None,
+        api_url: Optional[str] = None,
+        query: Optional[str] = None,
+        limit: int = 100,
+    ) -> CollectionList:
+        """List the collections a STAC catalog offers (discover what to request).
+
+        Answers "what data can I request here?" — the returned ids are exactly
+        what ``stac_search`` / ``stac_search_multi`` accept in ``collections``
+        (required by Planetary Computer and CMR-STAC). Pass a known ``catalog``
+        name (``earth-search``, ``planetary-computer``, ``cmr-stac``,
+        ``copernicus``, ``usgs``) or an ``api_url``, and an optional ``query``
+        substring (e.g. ``"sentinel"``) to narrow a large catalog. An unknown
+        catalog, both/neither of ``catalog``/``api_url``, or a non-positive
+        ``limit`` raises a ``ValidationError`` before any network call;
+        source failures map onto the shared ``Error_Taxonomy``.
+        """
+        try:
+            return await list_collections(
+                catalog=catalog,
+                api_url=api_url,
+                query=query,
+                limit=limit,
+                http=self.http,
+            )
+        except GeoError as exc:
+            raise self._refine_stac_error(exc) from exc
+        except Exception as exc:  # pragma: no cover - defensive catch-all
+            raise self._refine_stac_error(
+                self.map_error(exc, source=self.server_name)
+            ) from exc
 
     def _refine_stac_error(self, exc: GeoError) -> GeoError:
         """Refine a taxonomy-classified STAC error for Requirements 7.8 / 7.11.

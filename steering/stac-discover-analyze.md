@@ -16,7 +16,8 @@ fileMatchPattern:
 Drive a discover → process → analyze pipeline that finds assets via STAC, reads
 only the pixels needed, analyzes them, and reports full provenance.
 
-- Provider tools: `geo-stac.stac_search`, `geo-raster.read_window`,
+- Provider tools: `geo-stac.list_collections`, `geo-stac.stac_search`,
+  `geo-raster.read_window`,
   `geo-raster.band_math`, plus an analysis tool
   (`geo-foundation-models.embed_tile`, `geo-raster.zonal_statistics`, ...)
 - Requirements: 7.1 (STAC search ≤30s, assets + spatio-temporal metadata, cap
@@ -46,9 +47,14 @@ no longer matches.
 ## Steps (in order)
 
 1. **Define the query.** Establish the spatial extent (`bbox`), the temporal
-   range (`datetime_range`), and target `collections`. Validate the bbox and
-   that the range start is not later than its end; reject malformed parameters
-   with an `Error_Taxonomy` validation error before searching (Requirement 7.12).
+   range (`datetime_range`), and target `collections`. When you don't know a
+   catalog's collection ids — or you're targeting Planetary Computer / CMR-STAC,
+   which return nothing without a `collections` filter — call
+   `geo-stac.list_collections(catalog=..., query="sentinel")` first to discover
+   what the catalog offers; the returned ids are exactly what `stac_search`
+   accepts. Validate the bbox and that the range start is not later than its
+   end; reject malformed parameters with an `Error_Taxonomy` validation error
+   before searching (Requirement 7.12).
 2. **Search the catalog.** Call
    `geo-stac.stac_search(bbox=..., datetime_range=..., collections=...,
    limit<=1000)`. Expect results within 30s, each item carrying its asset
@@ -83,3 +89,20 @@ no longer matches.
   and provenance stay accurate (`stac-metadata` skill).
 - Prefer cloud-optimized assets and windowed reads to honor "bring compute to
   the data."
+- **Catalog specifics for `stac_search` / `stac_search_multi`** (the roster
+  differs in what it serves and what it needs):
+  - **Earth Search** (Element 84) and **USGS** (Landsat C2) return matches for a
+    bbox + datetime query with **no `collections` filter** — good defaults.
+  - **Planetary Computer** and **CMR-STAC** (NASA **LPCLOUD**: HLS, MODIS, …)
+    return **nothing without a `collections` filter** — always pass
+    `collections` when targeting them (e.g. `["sentinel-2-l2a"]`,
+    `["HLSS30_2.0"]`).
+  - **Copernicus Data Space** here serves **CLMS land-monitoring + Copernicus
+    Contributing Missions** products (burned area, FAPAR/LAI, land cover…),
+    **not** raw Sentinel scenes — for Sentinel-2 use Earth Search or Planetary
+    Computer.
+  - **Collection ids differ per catalog**, so one `collections=[...]` in
+    `stac_search_multi` only matches the catalogs using those ids (Earth Search
+    and Planetary Computer share `sentinel-2-l2a`; USGS uses `landsat-c2l2-sr`).
+    A collection-less federated search effectively answers from Earth Search +
+    USGS only.
