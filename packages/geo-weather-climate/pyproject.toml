@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "geo-weather-climate"
-version = "0.2.0"
-description = "Pillar A (expansion) MCP server: weather and climate observations from NOAA/NWS, Open-Meteo, ERA5, and OpenAQ."
+version = "0.3.0"
+description = "Pillar A (expansion) MCP server: weather, climate, and air-quality observations from NOAA/NWS, Open-Meteo (weather + air-quality), and ERA5 (via the Open-Meteo archive)."
 requires-python = ">=3.10"
 license = "MIT-0"
 authors = [{ name = "Geospatial Power Pack Contributors" }]

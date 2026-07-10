@@ -10,7 +10,10 @@ Three open, no-credential sources ship by default:
 
 * :class:`OpenMeteoSource` - hourly weather observations from the Open-Meteo
   archive API (the default source).
-* :class:`OpenAQSource` - air-quality measurements from the OpenAQ API.
+* :class:`OpenMeteoAirQualitySource` - hourly air-quality observations
+  (PM2.5/PM10, CO/NO2/SO2/O3) from the Open-Meteo air-quality API, selectable
+  via ``source="air-quality"``. Open and credential-free (CAMS-derived); it
+  replaces the retired OpenAQ v2 API, whose successor v3 requires an API key.
 * :class:`NwsSource` - US National Weather Service station observations
   (``api.weather.gov``; US coverage only), selectable via ``source="nws"``.
 
@@ -45,7 +48,7 @@ from geo_weather_climate.timerange import validate_location, validate_time_range
 __all__ = [
     "WeatherSource",
     "OpenMeteoSource",
-    "OpenAQSource",
+    "OpenMeteoAirQualitySource",
     "NwsSource",
     "NoaaCdoSource",
     "default_sources",
@@ -72,7 +75,9 @@ _AVAILABILITY_CATEGORIES = (ErrorCategory.NETWORK, ErrorCategory.UPSTREAM)
 #: Default public endpoints. Each is overridable per source instance so a
 #: deployment (or a test) can point at a mirror or a mock transport.
 DEFAULT_OPEN_METEO_URL = "https://archive-api.open-meteo.com/v1/archive"
-DEFAULT_OPENAQ_URL = "https://api.openaq.org/v2/measurements"
+#: Open-Meteo air-quality API root. Open, no credential (CAMS-derived). Replaces
+#: the retired OpenAQ v2 endpoint (v3 requires an API key).
+DEFAULT_OPEN_METEO_AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
 #: NWS API root (api.weather.gov). Open, no credential; US coverage only.
 DEFAULT_NWS_URL = "https://api.weather.gov"
 #: NOAA Climate Data Online (CDO) v2 API root. Credentialed: every request
@@ -159,14 +164,37 @@ class OpenMeteoSource(WeatherSource):
         return _parse_open_meteo(payload, location)
 
 
-class OpenAQSource(WeatherSource):
-    """Air-quality measurements via the OpenAQ API."""
+class OpenMeteoAirQualitySource(WeatherSource):
+    """Hourly air-quality observations via the Open-Meteo air-quality API.
 
-    name = "openaq"
+    Open and credential-free (Open-Meteo serves CAMS-derived air-quality data),
+    global coverage, selectable via ``source="air-quality"``. Returns hourly
+    pollutant concentrations (PM2.5, PM10, CO, NO2, SO2, O3) as parallel arrays,
+    the same response shape as the Open-Meteo weather archive. This replaces the
+    retired OpenAQ v2 API (its successor, OpenAQ v3, requires an API key and is
+    therefore not part of the open default source set).
+    """
 
-    def __init__(self, url: str = DEFAULT_OPENAQ_URL, *, radius_m: int = 25000) -> None:
+    name = "air-quality"
+
+    #: Hourly pollutant variables requested by default; overridable per instance.
+    DEFAULT_HOURLY = (
+        "pm2_5",
+        "pm10",
+        "carbon_monoxide",
+        "nitrogen_dioxide",
+        "sulphur_dioxide",
+        "ozone",
+    )
+
+    def __init__(
+        self,
+        url: str = DEFAULT_OPEN_METEO_AIR_QUALITY_URL,
+        *,
+        hourly: Optional[Sequence[str]] = None,
+    ) -> None:
         self.url = url
-        self.radius_m = radius_m
+        self.hourly = tuple(hourly) if hourly is not None else self.DEFAULT_HOURLY
 
     async def fetch(
         self,
@@ -176,11 +204,12 @@ class OpenAQSource(WeatherSource):
         end: str,
     ) -> List[Observation]:
         params: Dict[str, Any] = {
-            "coordinates": "%g,%g" % (location.lat, location.lon),
-            "radius": self.radius_m,
-            "date_from": start,
-            "date_to": end,
-            "limit": 1000,
+            "latitude": location.lat,
+            "longitude": location.lon,
+            "start_date": _date_part(start),
+            "end_date": _date_part(end),
+            "hourly": ",".join(self.hourly),
+            "timezone": "UTC",
         }
         try:
             response = await http.get(self.url, params=params)
@@ -188,7 +217,7 @@ class OpenAQSource(WeatherSource):
             raise
         if response.status_code >= 400:
             raise UpstreamError(
-                "OpenAQ returned HTTP %d" % response.status_code,
+                "Open-Meteo air-quality returned HTTP %d" % response.status_code,
                 source=self.name,
                 detail={"status_code": response.status_code},
             )
@@ -196,11 +225,11 @@ class OpenAQSource(WeatherSource):
             payload = response.json()
         except ValueError as exc:
             raise UpstreamError(
-                "OpenAQ returned a non-JSON response",
+                "Open-Meteo air-quality returned a non-JSON response",
                 source=self.name,
                 original=str(exc),
             )
-        return _parse_openaq(payload, location)
+        return _parse_open_meteo_hourly(payload, location, source_name=self.name)
 
 
 class NwsSource(WeatherSource):
@@ -394,14 +423,16 @@ class NoaaCdoSource(WeatherSource):
 
 
 def default_sources() -> List[WeatherSource]:
-    """The default source set: Open-Meteo (weather) + OpenAQ (air quality) + NWS.
+    """The default source set: Open-Meteo (weather) + air-quality + NWS.
 
-    Open-Meteo (the default) and OpenAQ are global; NWS (``api.weather.gov``,
-    open, US coverage only) is selectable via ``source="nws"``. The credentialed
-    NOAA CDO source (``source="cdo"``) is added by the server when configured
-    (it reads ``NOAA_CDO_TOKEN``) and is not part of the open default set.
+    Open-Meteo weather (the default, ``source="open-meteo"``) and Open-Meteo
+    air-quality (``source="air-quality"``) are global and credential-free; NWS
+    (``api.weather.gov``, open, US coverage only) is selectable via
+    ``source="nws"``. The credentialed NOAA CDO source (``source="cdo"``) is
+    added by the server when configured (it reads ``NOAA_CDO_TOKEN``) and is not
+    part of the open default set.
     """
-    return [OpenMeteoSource(), OpenAQSource(), NwsSource()]
+    return [OpenMeteoSource(), OpenMeteoAirQualitySource(), NwsSource()]
 
 
 async def observations(
@@ -526,16 +557,25 @@ def _date_part(timestamp: str) -> str:
 
 
 def _parse_open_meteo(payload: Any, location: Coordinate) -> List[Observation]:
+    """Convert an Open-Meteo weather ``hourly`` payload into observation records."""
+    return _parse_open_meteo_hourly(payload, location, source_name="open-meteo")
+
+
+def _parse_open_meteo_hourly(
+    payload: Any, location: Coordinate, *, source_name: str
+) -> List[Observation]:
     """Convert an Open-Meteo ``hourly`` payload into observation records.
 
-    Open-Meteo returns parallel arrays under ``hourly`` (a ``time`` array plus
-    one array per requested variable). Each index becomes one observation whose
-    ``values`` hold that hour's variables.
+    Both the Open-Meteo weather archive and the Open-Meteo air-quality API return
+    parallel arrays under ``hourly`` (a ``time`` array plus one array per
+    requested variable). Each index becomes one observation whose ``values`` hold
+    that hour's variables, tagged with ``source_name`` (``"open-meteo"`` for
+    weather, ``"air-quality"`` for pollutants).
     """
     if not isinstance(payload, dict):
         raise UpstreamError(
             "Open-Meteo payload was not a JSON object",
-            source="open-meteo",
+            source=source_name,
         )
     hourly = payload.get("hourly")
     if not isinstance(hourly, dict):
@@ -557,59 +597,10 @@ def _parse_open_meteo(payload: Any, location: Coordinate) -> List[Observation]:
         observations_out.append(
             Observation(
                 time=when,
-                source="open-meteo",
+                source=source_name,
                 values=values,
                 lon=location.lon,
                 lat=location.lat,
-            )
-        )
-    return observations_out
-
-
-def _parse_openaq(payload: Any, location: Coordinate) -> List[Observation]:
-    """Convert an OpenAQ ``measurements`` payload into observation records.
-
-    Each OpenAQ measurement (``{parameter, value, unit, date: {utc}}``) becomes
-    one observation whose ``values`` carry the pollutant reading.
-    """
-    if not isinstance(payload, dict):
-        raise UpstreamError(
-            "OpenAQ payload was not a JSON object",
-            source="openaq",
-        )
-    results = payload.get("results")
-    if not isinstance(results, list):
-        return []
-
-    observations_out: List[Observation] = []
-    for measurement in results:
-        if not isinstance(measurement, dict):
-            continue
-        date = measurement.get("date")
-        when = date.get("utc") if isinstance(date, dict) else None
-        if not isinstance(when, str) or not when:
-            continue
-        parameter = measurement.get("parameter")
-        values: Dict[str, Any] = {}
-        if isinstance(parameter, str) and parameter:
-            values[parameter] = measurement.get("value")
-            if measurement.get("unit") is not None:
-                values["unit"] = measurement.get("unit")
-        coords = measurement.get("coordinates")
-        lon = location.lon
-        lat = location.lat
-        if isinstance(coords, dict):
-            if isinstance(coords.get("longitude"), (int, float)):
-                lon = float(coords["longitude"])
-            if isinstance(coords.get("latitude"), (int, float)):
-                lat = float(coords["latitude"])
-        observations_out.append(
-            Observation(
-                time=when,
-                source="openaq",
-                values=values,
-                lon=lon,
-                lat=lat,
             )
         )
     return observations_out
