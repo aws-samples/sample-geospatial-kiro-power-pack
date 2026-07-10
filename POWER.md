@@ -98,6 +98,18 @@ These are **third-party** MCP servers that pair well with this Power. They are
 you install them yourself, and each is governed by its own license. We list them
 purely as recommendations, with attribution.
 
+- **`awslabs.roda-mcp-server`** — AWS Labs' MCP server for the
+  [Registry of Open Data on AWS](https://registry.opendata.aws/)
+  ([awslabs/mcp](https://github.com/awslabs/mcp/tree/main/src/roda-mcp-server),
+  Apache-2.0). The **discovery front-door** *upstream* of this pack's
+  discover → process → analyze flow: natural-language search across 1,000+ open
+  datasets (by keyword/organization/license, always surfacing license terms),
+  public-bucket preview/sample, and `search_stac_endpoints`. Use it to *find*
+  the dataset, then read/analyze it here — its STAC-endpoint discovery pairs
+  directly with `geo-stac`, and the open datasets it surfaces (Sentinel-2 COGs,
+  etc.) are exactly what the pack's default open-data paths read.
+  - Install (separately, from PyPI): `uvx awslabs.roda-mcp-server@latest`
+
 - **`gdal-mcp`** — a GDAL/Rasterio operations MCP server
   ([JordanGunn/gdal-mcp](https://github.com/JordanGunn/gdal-mcp), MIT). It
   complements this pack's cloud-native connectors with **local-file** GDAL

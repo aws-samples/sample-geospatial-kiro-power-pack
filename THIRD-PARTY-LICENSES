@@ -71,6 +71,12 @@ External MCP servers (referenced / documented as companions; not redistributed)
               map visualization); installed separately by the user under its own
               license, invoked as a separate MCP process, not bundled.
 
+  awslabs.roda-mcp-server    Apache-2.0    https://github.com/awslabs/mcp/tree/main/src/roda-mcp-server
+              AWS Labs' MCP server for the Registry of Open Data on AWS.
+              Documented as an optional companion for dataset discovery upstream
+              of this pack; installed separately by the user under its own
+              license, invoked as a separate MCP process, not bundled.
+
   gdal-mcp    MIT   https://github.com/JordanGunn/gdal-mcp
               Documented as an optional local-file GDAL/Rasterio companion in
               README.md / POWER.md; installed separately by the user under its

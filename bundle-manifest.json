@@ -1,7 +1,7 @@
 {
   "power": "kiro-geospatial",
   "displayName": "Geospatial Power Pack",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A modular Kiro Power giving developers unified, AI-assisted access to the fragmented geospatial landscape across open, free-tier, and proprietary sources. Built on a dual-fragmentation framing where data access (Pillar A) and processing/compute (Pillar B) receive equal weight, plus a GeoAI pillar (Pillar C).",
   "credentialSurface": "mcp.json",
   "enums": {
@@ -20,6 +20,25 @@
   ],
   "firstExpansions": ["geo-warehouse"],
   "companions": [
+    {
+      "name": "awslabs.roda-mcp-server",
+      "relationship": "Recommended companion (AWS Labs, first-party). Not part of this Power and not redistributed with it; the user installs it separately from PyPI under its own license.",
+      "identity": "Registry of Open Data on AWS (RODA) MCP server (AWS Labs)",
+      "source": "https://github.com/awslabs/mcp/tree/main/src/roda-mcp-server",
+      "package": "awslabs.roda-mcp-server (PyPI)",
+      "license": "Apache-2.0 (the companion project's own license; see its repository)",
+      "install": "uvx awslabs.roda-mcp-server@latest",
+      "complements": "Dataset discovery upstream of this pack's discover->process->analyze flow: natural-language search across 1,000+ Registry of Open Data on AWS datasets, public S3 preview/sample, and STAC-endpoint discovery. Find the dataset with RODA, then read/analyze it cloud-natively with this pack (its search_stac_endpoints pairs directly with geo-stac).",
+      "capabilities": [
+        "search_datasets", "list_datasets", "get_dataset_details",
+        "discover_by_organization", "discover_by_license", "find_related_datasets",
+        "get_knowledge_base_stats", "preview_dataset", "sample_dataset", "search_stac_endpoints"
+      ],
+      "caveats": [
+        "Each RODA dataset has its own license terms - review them before accessing or using the data (the server always surfaces license info).",
+        "preview_dataset / sample_dataset are only available for public datasets without controlled access; other tiers may require AWS credentials (requester-pays) or additional access steps."
+      ]
+    },
     {
       "name": "gdal-mcp",
       "relationship": "Recommended companion (third-party). Not part of this Power and not redistributed with it; the user installs it separately from PyPI under its own license.",
