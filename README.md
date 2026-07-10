@@ -164,8 +164,23 @@ attribution.
 
 | Companion | Source | License | Use it for |
 |-----------|--------|---------|------------|
+| `awslabs.roda-mcp-server` | [awslabs/mcp](https://github.com/awslabs/mcp/tree/main/src/roda-mcp-server) | Apache-2.0 (AWS Labs) | **Discovering** open datasets on the Registry of Open Data on AWS (1,000+): search by keyword/organization/license, preview/sample public S3 buckets, and `search_stac_endpoints`. The natural discovery front-door *upstream* of this pack — find the dataset, then read/analyze it here (pairs directly with `geo-stac`) |
 | `gdal-mcp` | [JordanGunn/gdal-mcp](https://github.com/JordanGunn/gdal-mcp) | MIT | Local-file GDAL/Rasterio ops: file-level raster/vector reproject + convert, and vector `clip` (for `buffer`/`convex_hull`/`simplify` use this pack's `geo-ops`) |
 | `gis-mcp` | [mahdin75/gis-mcp](https://github.com/mahdin75/gis-mcp) | MIT | Spatial statistics / ESDA you don't get here (PySAL: Moran's I, Geary's C, Getis-Ord, LISA, spatial regression) and map rendering (static Matplotlib + interactive Folium web maps) |
+
+`awslabs.roda-mcp-server` is AWS Labs' own MCP server for the [Registry of Open
+Data on AWS](https://registry.opendata.aws/). It sits *upstream* of this pack's
+discover → process → analyze flow: use it to **find** the right open dataset
+(natural-language search across 1,000+ datasets, license always surfaced, plus
+public-bucket preview/sample), then hand the dataset's S3/STAC references to
+this pack to read and analyze cloud-natively. Its `search_stac_endpoints` tool
+pairs directly with `geo-stac`, and the open, credential-free datasets it
+surfaces (e.g. Sentinel-2 COGs) are exactly what the pack's default paths read.
+Install it separately from PyPI:
+
+```bash
+uvx awslabs.roda-mcp-server@latest
+```
 
 `gis-mcp` is a single local server built on the classic desktop Python GIS
 stack (Shapely/PyProj/GeoPandas/Rasterio/PySAL). Its **geometry, CRS, raster,
