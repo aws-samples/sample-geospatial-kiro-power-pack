@@ -120,31 +120,31 @@ async def test_observations_invoked_through_tool_registry() -> None:
 
 
 async def test_observations_selects_named_source() -> None:
-    """A caller can select the OpenAQ source by name."""
-    openaq_payload = {
-        "results": [
-            {
-                "parameter": "pm25",
-                "value": 12.3,
-                "unit": "µg/m³",
-                "date": {"utc": "2023-01-01T00:00:00Z"},
-                "coordinates": {"latitude": 37.75, "longitude": -122.45},
-            }
-        ]
+    """A caller can select the Open-Meteo air-quality source by name."""
+    air_quality_payload = {
+        "latitude": 37.75,
+        "longitude": -122.45,
+        "hourly": {
+            "time": ["2023-01-01T00:00", "2023-01-01T01:00"],
+            "pm2_5": [12.3, 13.1],
+            "pm10": [20.0, 21.2],
+            "ozone": [55.0, 56.0],
+        },
     }
     server = GeoWeatherClimateServer(
-        http=_client(lambda req: httpx.Response(200, json=openaq_payload))
+        http=_client(lambda req: httpx.Response(200, json=air_quality_payload))
     )
     try:
         records = await server.observations(
-            location=SF, time_range=VALID_RANGE, source="openaq"
+            location=SF, time_range=VALID_RANGE, source="air-quality"
         )
     finally:
         await server.aclose()
 
-    assert len(records) == 1
-    assert records[0]["source"] == "openaq"
-    assert records[0]["pm25"] == 12.3
+    assert len(records) == 2
+    assert records[0]["source"] == "air-quality"
+    assert records[0]["pm2_5"] == 12.3
+    assert records[0]["pm10"] == 20.0
 
 
 # --- Validation errors (Requirement 7.12) ----------------------------------

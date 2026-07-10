@@ -143,9 +143,9 @@ Default connector data sources (accessed at runtime; attribution where required)
   OpenStreetMap (Overpass, Nominatim, Photon, OSRM, Valhalla, Overture base)
                                          ODbL 1.0
     Attribution: "(C) OpenStreetMap contributors".
-  Open-Meteo                             CC-BY 4.0
-    Attribution: "Weather data by Open-Meteo.com".
-  OpenAQ                                 CC-BY 4.0
+  Open-Meteo (weather + air-quality)     CC-BY 4.0
+    Attribution: "Weather data by Open-Meteo.com". Air-quality data is
+    CAMS-derived (Copernicus Atmosphere Monitoring Service) via Open-Meteo.
   GBIF                                   per-dataset (CC0 / CC-BY / CC-BY-NC);
                                          cite the GBIF download/source
   iNaturalist                            per-observation Creative Commons terms

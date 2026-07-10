@@ -140,13 +140,13 @@
       "firstExpansion": false,
       "tier": "Open / Free-Tier",
       "uvx": "uvx geo-weather-climate",
-      "role": "Weather, climate, and environmental observations from Open-Meteo (default), OpenAQ, and NOAA/NWS (US); NOAA Climate Data Online when configured. ERA5 reanalysis is covered via the Open-Meteo archive (ERA5-derived), not a direct Copernicus CDS client.",
+      "role": "Weather, climate, and air-quality observations from Open-Meteo weather (default) and Open-Meteo air-quality (source=air-quality: PM2.5/PM10/CO/NO2/SO2/O3), and NOAA/NWS (US); NOAA Climate Data Online when configured. ERA5 reanalysis is covered via the Open-Meteo archive (ERA5-derived), not a direct Copernicus CDS client.",
       "credentials": [
         {
           "key": "NOAA_CDO_TOKEN",
           "classification": "Optional",
           "source": "NOAA Climate Data Online",
-          "description": "NOAA CDO API token; required only for the credentialed 'cdo' source (selectable via source=cdo). Open-Meteo/OpenAQ/NWS work without it."
+          "description": "NOAA CDO API token; required only for the credentialed 'cdo' source (selectable via source=cdo). Open-Meteo weather/air-quality and NWS work without it."
         }
       ],
       "wraps": []

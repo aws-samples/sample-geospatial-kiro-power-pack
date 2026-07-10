@@ -106,6 +106,6 @@ async def test_nws_no_stations_returns_empty():
     assert records == []
 
 
-def test_default_sources_include_open_meteo_openaq_and_nws():
+def test_default_sources_include_open_meteo_air_quality_and_nws():
     names = [s.name for s in default_sources()]
-    assert names == ["open-meteo", "openaq", "nws"]
+    assert names == ["open-meteo", "air-quality", "nws"]

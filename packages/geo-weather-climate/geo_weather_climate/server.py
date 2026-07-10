@@ -40,7 +40,8 @@ INSTALL_COMMAND = "uvx geo-weather-climate"
 class GeoWeatherClimateServer(BaseGeoServer):
     """Pillar A (expansion) server exposing weather/climate observations.
 
-    Holds the configurable source set (Open-Meteo + OpenAQ by default) and
+    Holds the configurable source set (Open-Meteo weather + Open-Meteo
+    air-quality by default) and
     registers ``observations`` as an MCP tool. All outbound calls share the
     inherited :class:`HttpClient` so they get identical retry/backoff and the
     30-second per-request timeout (Requirement 7.6).
@@ -51,7 +52,8 @@ class GeoWeatherClimateServer(BaseGeoServer):
     version = "0.2.0"
 
     #: The wrapped NOAA CDO source can use this ``mcp.json`` key for richer
-    #: access, but it is *Optional*: Open-Meteo / OpenAQ / NWS serve open data
+    #: access, but it is *Optional*: Open-Meteo (weather + air-quality) / NWS
+    #: serve open data
     #: without a credential, so an absent key never blocks startup
     #: (Requirement 16.5). Mirrors ``bundle-manifest.json``'s
     #: ``geo-weather-climate`` block. (ERA5 is covered via the Open-Meteo
@@ -96,7 +98,7 @@ class GeoWeatherClimateServer(BaseGeoServer):
 
         Declares the ``observations`` capability naming ``geo-weather-climate``
         as the provider (Requirements 2.1, 11.3). The default sources
-        (Open-Meteo, OpenAQ) are open data, so the entry is tier
+        (Open-Meteo weather + air-quality) are open data, so the entry is tier
         :attr:`OpennessTier.OPEN`; the ``uvx`` install command lets the catalog
         surface it when the provider is not yet installed (Requirement 2.6).
         """
@@ -106,9 +108,12 @@ class GeoWeatherClimateServer(BaseGeoServer):
                 pillar=self.pillar,
                 capability_description=(
                     "Retrieve weather, climate, and environmental observations "
-                    "for a point location and time range from NOAA/NWS "
-                    "(US coverage), Open-Meteo, and OpenAQ; rejects a time "
-                    "range whose start is later than its end."
+                    "for a point location and time range: Open-Meteo weather "
+                    "(default, source='open-meteo'), Open-Meteo air-quality "
+                    "(PM2.5/PM10/CO/NO2/SO2/O3, source='air-quality'), and "
+                    "NOAA/NWS (US coverage, source='nws'); NOAA CDO when "
+                    "configured. Rejects a time range whose start is later than "
+                    "its end."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,
