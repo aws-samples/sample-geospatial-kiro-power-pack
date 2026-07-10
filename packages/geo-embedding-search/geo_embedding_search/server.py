@@ -5,19 +5,25 @@ This module wires the embedding store/search core
 :class:`~geo_common.server.BaseGeoServer` contract and exposes
 ``store_embedding`` and ``search_embeddings`` as MCP tools.
 
-The server owns one configured vector store (an
-:class:`~geo_embedding_search.store.InMemoryVectorStore` by default; OpenSearch /
-LanceDB backends substitute without changing the tool contract). It inherits
-the taxonomy error mapping from :class:`~geo_common.server.BaseGeoServer`, so a
-persistence or query failure maps onto exactly one ``Error_Taxonomy`` category
-(Req 9.8, 11.5).
+The server owns one configured vector store. By default this is the zero-config
+:class:`~geo_embedding_search.store.InMemoryVectorStore` (process-local,
+non-durable). Two real backends substitute without changing the tool contract,
+selected by environment configuration (see
+:func:`geo_embedding_search.wiring.default_vector_store`): the local, durable
+:class:`~geo_embedding_search.lancedb_store.LanceDBVectorStore` (``[lancedb]``
+extra, activated by ``LANCEDB_URI``) and the managed/hosted
+:class:`~geo_embedding_search.opensearch_store.OpenSearchVectorStore`
+(``[opensearch]`` extra, activated by ``OPENSEARCH_URL`` - the OpenSearch engine
+runs as a managed service, never locally). It inherits the taxonomy error
+mapping from :class:`~geo_common.server.BaseGeoServer`, so a persistence or
+query failure maps onto exactly one ``Error_Taxonomy`` category (Req 9.8, 11.5).
 
-Task 15.4 registers the server's Resource Catalog entries (one per capability -
-Req 2.1, 11.3) and its ``mcp.json`` credential specs (Req 16.1). The three
-OpenSearch keys are all :attr:`CredentialClassification.OPTIONAL`: the default
-LanceDB-style local store works without them, so an absent value never blocks
-startup (Req 16.5). The bundled vector stores (OpenSearch, LanceDB) are openly
-licensed, so every catalog entry's tier is :attr:`OpennessTier.OPEN`.
+The server registers its Resource Catalog entries (one per capability - Req 2.1,
+11.3) and its ``mcp.json`` credential specs (Req 16.1). The three OpenSearch
+keys are all :attr:`CredentialClassification.OPTIONAL`: the default in-memory
+store (and the local LanceDB store) work without them, so an absent value never
+blocks startup (Req 16.5). The backends read openly licensed data, so every
+catalog entry's tier is :attr:`OpennessTier.OPEN`.
 """
 
 from __future__ import annotations
@@ -67,7 +73,7 @@ class GeoEmbeddingSearchServer(BaseGeoServer):
 
     pillar = "C"
     server_name = "geo-embedding-search"
-    version = "0.2.0"
+    version = "0.3.0"
 
     def __init__(
         self,
@@ -91,8 +97,8 @@ class GeoEmbeddingSearchServer(BaseGeoServer):
         ``store_embedding`` and ``search_embeddings`` - each naming this server
         as ``provider_server`` (Req 11.3) and recording the entry name, pillar,
         capability description, and ``Openness_Tier`` required by the Resource
-        Catalog (Req 2.1). The bundled vector stores (OpenSearch, LanceDB) are
-        openly licensed, so each entry's tier is :attr:`OpennessTier.OPEN`.
+        Catalog (Req 2.1). The store backends read openly licensed data, so each
+        entry's tier is :attr:`OpennessTier.OPEN`.
         """
         provider = self.server_name
         return [
@@ -101,7 +107,8 @@ class GeoEmbeddingSearchServer(BaseGeoServer):
                 pillar=self.pillar,
                 capability_description=(
                     "Persist an embedding plus metadata to the configured "
-                    "vector store (OpenSearch / LanceDB), confirming the record "
+                    "vector store (in-memory by default; local LanceDB or a "
+                    "managed OpenSearch when configured), confirming the record "
                     "is retrievable and leaving no partial record on failure."
                 ),
                 openness_tier=OpennessTier.OPEN,
@@ -125,11 +132,12 @@ class GeoEmbeddingSearchServer(BaseGeoServer):
     def required_credentials(self) -> "List[CredentialSpec]":
         """The ``mcp.json`` keys this server reads, with classification (Req 16.1).
 
-        Declares the three Optional OpenSearch connection keys
-        (``OPENSEARCH_URL``, ``OPENSEARCH_USERNAME``, ``OPENSEARCH_PASSWORD``).
-        Because each is :attr:`CredentialClassification.OPTIONAL`, an absent
-        value never blocks startup (Req 16.5): the default local LanceDB-style
-        store works without any OpenSearch configuration.
+        Declares the three Optional connection keys for the managed/hosted
+        OpenSearch backend (``OPENSEARCH_URL``, ``OPENSEARCH_USERNAME``,
+        ``OPENSEARCH_PASSWORD``). Because each is
+        :attr:`CredentialClassification.OPTIONAL`, an absent value never blocks
+        startup (Req 16.5): the default in-memory store and the local LanceDB
+        store (``LANCEDB_URI``) work without any OpenSearch configuration.
         """
         return [
             CredentialSpec(
@@ -177,8 +185,13 @@ class GeoEmbeddingSearchServer(BaseGeoServer):
 def main() -> None:
     """Console entry point: serve geo-embedding-search over MCP stdio.
 
-    Runs the startup credential guard, then serves this server's registered
-    tools over stdin/stdout via the shared geo-common MCP runtime until the
-    client disconnects.
+    Selects the configured vector store via
+    :func:`geo_embedding_search.wiring.default_vector_store` (managed OpenSearch
+    when ``OPENSEARCH_URL`` is set, local LanceDB when ``LANCEDB_URI`` is set,
+    else the in-memory default), runs the startup credential guard, then serves
+    this server's registered tools over stdin/stdout via the shared geo-common
+    MCP runtime until the client disconnects.
     """
-    GeoEmbeddingSearchServer().run()
+    from geo_embedding_search.wiring import default_vector_store
+
+    GeoEmbeddingSearchServer(store=default_vector_store()).run()

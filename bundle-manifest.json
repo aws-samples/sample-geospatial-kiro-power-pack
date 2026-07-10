@@ -330,13 +330,13 @@
       "firstExpansion": false,
       "tier": "Open",
       "uvx": "uvx geo-embedding-search",
-      "role": "Embed, index, and run semantic/similarity search via OpenSearch and LanceDB.",
+      "role": "Store embeddings and run semantic/similarity search. Zero-config in-memory store by default; a local durable LanceDB store (geo-embedding-search[lancedb], set LANCEDB_URI); or a managed/hosted OpenSearch, e.g. Amazon OpenSearch Service (geo-embedding-search[opensearch], set OPENSEARCH_URL) - the OpenSearch engine runs as a managed service, never locally.",
       "credentials": [
         {
           "key": "OPENSEARCH_URL",
           "classification": "Optional",
           "source": "OpenSearch",
-          "description": "Optional OpenSearch endpoint; the default LanceDB local store works without it."
+          "description": "Optional endpoint for a managed/hosted OpenSearch backend (requires the [opensearch] extra); the in-memory default and the local LanceDB store work without it."
         },
         {
           "key": "OPENSEARCH_USERNAME",
