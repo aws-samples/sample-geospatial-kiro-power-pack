@@ -62,10 +62,30 @@ DEFAULT_STAC_API_URL: str = "https://earth-search.aws.element84.com/v1"
 #: The open STAC API roots the federated :func:`stac_search_multi` queries by
 #: default. Each is a STAC-API ``/search``-capable endpoint; per-source failures
 #: degrade gracefully (the source is marked failed and the rest still return).
+#:
+#: Notes on the roster (verified against the live APIs):
+#:
+#: * ``earth-search`` and ``usgs`` return matches for a bbox/datetime query
+#:   **without** a ``collections`` filter.
+#: * ``planetary-computer`` and ``cmr-stac`` (LP DAAC) return **nothing** unless
+#:   a ``collections`` filter is supplied — always pass ``collections`` for them.
+#: * ``cmr-stac`` targets the searchable **LPCLOUD** provider sub-catalog (HLS,
+#:   MODIS, …); the CMR-STAC *root* (``/stac``) is a catalog-of-catalogs and is
+#:   not itself searchable, so it is not used here.
+#: * ``copernicus`` is the Copernicus Data Space STAC, which serves **CLMS land-
+#:   monitoring + Copernicus Contributing Missions** products (burned area,
+#:   FAPAR/LAI, land cover, …), **not** raw Sentinel scenes (use Earth Search /
+#:   Planetary Computer for Sentinel-2); it also requires a ``collections``
+#:   filter.
+#:
+#: Collection ids differ per catalog, so one ``collections=[...]`` in the
+#: federated search only matches the catalogs that use those ids (e.g. Earth
+#: Search and Planetary Computer both use ``sentinel-2-l2a``; USGS uses
+#: ``landsat-c2l2-sr``).
 KNOWN_STAC_ENDPOINTS: Dict[str, str] = {
     "earth-search": "https://earth-search.aws.element84.com/v1",
     "planetary-computer": "https://planetarycomputer.microsoft.com/api/stac/v1",
-    "cmr-stac": "https://cmr.earthdata.nasa.gov/stac",
+    "cmr-stac": "https://cmr.earthdata.nasa.gov/stac/LPCLOUD",
     "copernicus": "https://catalogue.dataspace.copernicus.eu/stac",
     "usgs": "https://landsatlook.usgs.gov/stac-server",
 }

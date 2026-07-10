@@ -120,11 +120,12 @@ class GeoStacServer(BaseGeoServer):
                 name="stac_search",
                 pillar=self.pillar,
                 capability_description=(
-                    "Search STAC catalogs (Earth Search / Element84, Microsoft "
-                    "Planetary Computer, NASA CMR-STAC, Copernicus Data Space, "
-                    "USGS) by bounding box and datetime range, returning matching "
-                    "items with asset references and spatio-temporal metadata "
-                    "(capped at 1,000 items)."
+                    "Search a STAC catalog (default Earth Search / Element 84, "
+                    "or any STAC-API endpoint) by bounding box and datetime "
+                    "range, returning matching items with asset references and "
+                    "spatio-temporal metadata (capped at 1,000). Pass "
+                    "'collections' to scope the search; Planetary Computer and "
+                    "CMR-STAC return nothing without it."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,
@@ -133,11 +134,14 @@ class GeoStacServer(BaseGeoServer):
                 name="stac_search_multi",
                 pillar=self.pillar,
                 capability_description=(
-                    "Federated STAC search across multiple catalogs (Earth "
-                    "Search, Planetary Computer, CMR-STAC, Copernicus, USGS) "
-                    "concurrently, merging and de-duplicating results with "
-                    "per-source provenance and graceful degradation (partial "
-                    "results when a source is unavailable)."
+                    "Federated STAC search across catalogs concurrently — Earth "
+                    "Search + USGS (Landsat) answer bbox/datetime directly; "
+                    "Planetary Computer and CMR-STAC (NASA LPCLOUD: HLS/MODIS) "
+                    "need a 'collections' filter; Copernicus Data Space serves "
+                    "CLMS land-monitoring products (not raw Sentinel). Round-"
+                    "robin merges + de-duplicates with per-source provenance and "
+                    "graceful degradation (partial results when a source is "
+                    "unavailable). Collection ids differ per catalog."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,

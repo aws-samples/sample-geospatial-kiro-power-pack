@@ -126,7 +126,7 @@ Per-server credential keys are in the Credentials reference below.
 |---|--------|--------|------|-------|------------------|
 | — | `kiro-geospatial` | Hub | Open | — | dashboard, catalog, credential manager, orchestration router |
 | — | `geo-common` | Shared base | Open | — | HttpClient, retry/backoff, `Error_Taxonomy`, `BaseGeoServer` |
-| 1 | `geo-stac` | A | Open | 2 | STAC search — single catalog (`stac_search`) and federated multi-catalog (`stac_search_multi`, round-robin merge across Earth Search, Planetary Computer, CMR-STAC, Copernicus, USGS) |
+| 1 | `geo-stac` | A | Open | 2 | STAC search — one catalog (`stac_search`) or federated round-robin merge (`stac_search_multi`) across Earth Search & USGS/Landsat (answer bbox+datetime directly), Planetary Computer & NASA CMR-STAC (LPCLOUD: HLS/MODIS — need a `collections` filter), and Copernicus Data Space (CLMS land-monitoring products, not raw Sentinel). Collection ids differ per catalog |
 | 2 | `geo-vector` | A | Open | 1 | vector features from OpenStreetMap (Overpass); optional configured Overture endpoint |
 | 3 | `geo-geocode-route` | A | Open / Free-Tier | 4 | geocode + reverse-geocode (Nominatim, Photon), routing (OSRM, Valhalla), isochrones (Valhalla); Amazon Location selectable via `source` (credentialed) |
 | 4 | `geo-terrain` | A | Open | 5 | elevation, slope, aspect, hillshade from SRTM (default) and USGS 3DEP (public OpenTopoData; endpoint/dataset overridable); `dem_zonal` — per-zone elevation/slope/aspect statistics over a DEM COG via byte-range reads, by `dem_href` or a named `dem_source` (`glo30` — Copernicus GLO-30; `3dep` — USGS 3DEP 1/3 arc-second, US; tiles auto-resolved and mosaicked) |

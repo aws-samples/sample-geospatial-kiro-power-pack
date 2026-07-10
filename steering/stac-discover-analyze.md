@@ -83,3 +83,20 @@ no longer matches.
   and provenance stay accurate (`stac-metadata` skill).
 - Prefer cloud-optimized assets and windowed reads to honor "bring compute to
   the data."
+- **Catalog specifics for `stac_search` / `stac_search_multi`** (the roster
+  differs in what it serves and what it needs):
+  - **Earth Search** (Element 84) and **USGS** (Landsat C2) return matches for a
+    bbox + datetime query with **no `collections` filter** — good defaults.
+  - **Planetary Computer** and **CMR-STAC** (NASA **LPCLOUD**: HLS, MODIS, …)
+    return **nothing without a `collections` filter** — always pass
+    `collections` when targeting them (e.g. `["sentinel-2-l2a"]`,
+    `["HLSS30_2.0"]`).
+  - **Copernicus Data Space** here serves **CLMS land-monitoring + Copernicus
+    Contributing Missions** products (burned area, FAPAR/LAI, land cover…),
+    **not** raw Sentinel scenes — for Sentinel-2 use Earth Search or Planetary
+    Computer.
+  - **Collection ids differ per catalog**, so one `collections=[...]` in
+    `stac_search_multi` only matches the catalogs using those ids (Earth Search
+    and Planetary Computer share `sentinel-2-l2a`; USGS uses `landsat-c2l2-sr`).
+    A collection-less federated search effectively answers from Earth Search +
+    USGS only.
