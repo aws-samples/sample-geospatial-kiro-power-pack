@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "geo-embedding-search"
 version = "0.2.0"
-description = "Pillar C (expansion) MCP server: embedding storage and similarity search via OpenSearch and LanceDB."
+description = "Pillar C (expansion) MCP server: embedding storage and similarity search (in-memory default; local LanceDB or managed Amazon OpenSearch backends)."
 requires-python = ">=3.10"
 license = "MIT-0"
 authors = [{ name = "Geospatial Power Pack Contributors" }]
@@ -29,6 +29,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Local, embedded, durable vector store (no server to run).
+lancedb = ["lancedb>=0.5", "pyarrow>=14"]
+# Client for a managed/hosted OpenSearch (e.g. Amazon OpenSearch Service); the
+# engine runs as a managed service, not locally.
+opensearch = ["opensearch-py>=2.4,<4"]
 dev = ["pytest>=8.0,<9", "pytest-asyncio>=0.23,<1", "hypothesis>=6.100"]
 
 [project.scripts]

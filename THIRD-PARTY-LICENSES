@@ -34,6 +34,9 @@ Runtime:
   jsonschema                    MIT
 
 Optional extras (installed only when the corresponding extra is enabled):
+  lancedb                       Apache-2.0     (geo-embedding-search[lancedb])
+  opensearch-py                 Apache-2.0     (geo-embedding-search[opensearch];
+                                               client for a managed OpenSearch)
   pdal (PDAL Python bindings)   BSD-3-Clause
   redshift-connector            Apache-2.0
   snowflake-connector-python    Apache-2.0

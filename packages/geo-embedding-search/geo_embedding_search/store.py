@@ -4,12 +4,19 @@ This module holds the logic-bearing core of task 15.1, kept free of any
 MCP plumbing so it is easy to test and reuse:
 
 * :class:`VectorStoreBackend` - the pluggable "configured vector store"
-  interface (design.md names OpenSearch and LanceDB as production backends).
-  A backend only has to persist, look up, and enumerate
-  :class:`~geo_embedding_search.models.StoredRecord` values.
-* :class:`InMemoryVectorStore` - the default backend: a deterministic,
-  dependency-free store used for local runs and tests. Production backends are
-  substituted without changing the tool contract below.
+  interface. A backend persists, looks up, and enumerates
+  :class:`~geo_embedding_search.models.StoredRecord` values, and may optionally
+  push the top-``k`` search down to a real index via
+  :meth:`VectorStoreBackend.native_search`. Two real backends ship as opt-in
+  extras: :class:`~geo_embedding_search.lancedb_store.LanceDBVectorStore` (a
+  local, embedded, durable store - the ``[lancedb]`` extra) and
+  :class:`~geo_embedding_search.opensearch_store.OpenSearchVectorStore` (a
+  client for a **managed/hosted** OpenSearch, e.g. Amazon OpenSearch Service -
+  the ``[opensearch]`` extra, credentialed). The engine itself is never run
+  locally; the pack only connects to it, keeping the default install light.
+* :class:`InMemoryVectorStore` - the zero-config default backend: a
+  deterministic, dependency-free store for local runs and tests. The real
+  backends substitute without changing the tool contract below.
 * :func:`store_embedding` - validates an embedding, persists it plus its
   metadata to the configured store, and returns a
   :class:`~geo_embedding_search.models.StoreConfirmation` confirming the record is
@@ -65,11 +72,15 @@ MAX_K = 1000
 class VectorStoreBackend:
     """The configured vector store interface (Req 9.3 / 9.4).
 
-    A backend persists :class:`StoredRecord` values keyed by ``id`` and lets the
-    core enumerate them for similarity search. The default implementation is
-    :class:`InMemoryVectorStore`; production deployments substitute an
-    OpenSearch- or LanceDB-backed implementation without changing the
-    ``store_embedding`` / ``search_embeddings`` contract.
+    A backend persists :class:`StoredRecord` values keyed by ``id`` and either
+    lets the core enumerate them for similarity search or does the search itself
+    via :meth:`native_search`. The default implementation is
+    :class:`InMemoryVectorStore`; deployments substitute the local
+    :class:`~geo_embedding_search.lancedb_store.LanceDBVectorStore` (``[lancedb]``
+    extra) or the managed/hosted
+    :class:`~geo_embedding_search.opensearch_store.OpenSearchVectorStore`
+    (``[opensearch]`` extra) without changing the ``store_embedding`` /
+    ``search_embeddings`` contract.
     """
 
     def add(self, record: StoredRecord) -> None:  # pragma: no cover - interface
@@ -87,6 +98,22 @@ class VectorStoreBackend:
     def records(self) -> Sequence[StoredRecord]:  # pragma: no cover - interface
         """Return all persisted records, in a deterministic order."""
         raise NotImplementedError
+
+    def native_search(
+        self, query: Sequence[float], k: int
+    ) -> "Optional[List[VectorSearchHit]]":
+        """Optional backend-native similarity search (return ``None`` to opt out).
+
+        A backend backed by a real vector index (LanceDB, OpenSearch) overrides
+        this to push the top-``k`` search down to the engine instead of having
+        :func:`search_embeddings` enumerate and score every record in Python.
+        The default returns ``None``, which signals the caller to use the
+        portable enumerate-and-score path. An overriding backend MUST return
+        hits ordered by non-increasing ``similarity`` using the same cosine
+        metric as :func:`cosine_similarity`, and an empty list when it holds
+        nothing.
+        """
+        return None
 
     def __len__(self) -> int:  # pragma: no cover - interface
         raise NotImplementedError
@@ -267,6 +294,13 @@ def search_embeddings(
     """
     _validate_k(k)
     _validate_embedding(query, field="query")
+
+    # A backend with a real vector index (LanceDB / OpenSearch) does the top-k
+    # search itself; only fall back to the portable enumerate-and-score path
+    # when the backend opts out (returns None).
+    native = store.native_search([float(v) for v in query], k)
+    if native is not None:
+        return native
 
     records = list(store.records())
     if not records:
