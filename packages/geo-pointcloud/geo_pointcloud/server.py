@@ -55,7 +55,7 @@ class GeoPointcloudServer(BaseGeoServer):
 
     pillar = "B"
     server_name = "geo-pointcloud"
-    version = "0.2.0"
+    version = "0.3.0"
 
     #: Both AWS keys are Optional: public COPC assets work without them, while
     #: private S3 point-cloud assets can supply them (bundle-manifest.json
