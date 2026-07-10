@@ -271,7 +271,7 @@
       "firstExpansion": false,
       "tier": "Open",
       "uvx": "uvx geo-pointcloud",
-      "role": "Cloud-Optimized Point Cloud (COPC) read/write and streaming via PDAL.",
+      "role": "Read/write point clouds. Real Cloud-Optimized Point Cloud/LAZ read (octree-windowed) via laspy+lazrs (geo-pointcloud[copc], light, no native GDAL/PDAL); standards-compliant COPC write via PDAL (geo-pointcloud[pdal]); remote s3/https reads via geo-pointcloud[remote]. Falls back to a portable, lossless local container (not interoperable COPC) when no extra is installed.",
       "credentials": [
         {
           "key": "AWS_ACCESS_KEY_ID",

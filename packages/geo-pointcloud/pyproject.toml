@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "geo-pointcloud"
 version = "0.2.0"
-description = "Pillar B (expansion) MCP server: Cloud-Optimized Point Cloud (COPC) read and write via PDAL."
+description = "Pillar B (expansion) MCP server: Cloud-Optimized Point Cloud (COPC) / LAZ read and write (laspy for light COPC reads, PDAL for standards-compliant COPC writes)."
 requires-python = ">=3.10"
 license = "MIT-0"
 authors = [{ name = "Geospatial Power Pack Contributors" }]
@@ -30,11 +30,17 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0,<9", "pytest-asyncio>=0.23,<1", "hypothesis>=6.100"]
-# The production COPC backend (PdalCopcBackend). PDAL's Python bindings require
-# the native PDAL library to be present (e.g. `brew install pdal` /
-# `conda install -c conda-forge pdal python-pdal`). Without this extra the
-# server still works via the pure-Python LocalCopcBackend default.
+# Light real-COPC/LAZ read backend (LaspyCopcBackend): pure-Python laspy plus
+# the lazrs Rust wheel - no native GDAL/PDAL. Reads standards-compliant
+# .copc.laz (octree-windowed) and plain LAS/LAZ, and writes interoperable LAZ.
+copc = ["laspy>=2.5", "lazrs>=0.5"]
+# The standards-compliant COPC write backend (PdalCopcBackend). PDAL's Python
+# bindings require the native PDAL library (e.g. `brew install pdal` /
+# `conda install -c conda-forge pdal python-pdal`). Without either extra the
+# server still works via the pure-Python local-container fallback.
 pdal = ["pdal>=3.4", "numpy>=1.24"]
+# Optional: read remote (s3://, https://) COPC/LAZ sources with the copc extra.
+remote = ["fsspec>=2023.9", "s3fs>=2023.9"]
 
 [project.scripts]
 geo-pointcloud = "geo_pointcloud.server:main"

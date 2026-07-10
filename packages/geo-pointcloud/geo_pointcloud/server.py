@@ -42,12 +42,15 @@ class GeoPointcloudServer(BaseGeoServer):
     """Pillar B (expansion) server for COPC read/write (Requirement 8.11).
 
     Registers ``read_pointcloud`` and ``write_pointcloud`` as MCP tools. The
-    read/write engine is pluggable: by default it uses the portable, lossless
-    local COPC backend so the capability works without the native PDAL stack,
-    and a PDAL-backed backend can be injected to read/write standard
-    ``.copc.laz`` in production. COPC is an open format and all processing is
-    local; the two AWS keys it declares are *Optional* (private S3 assets only),
-    so an absent key never blocks startup and the server always starts (Req 16.5).
+    read/write engine is pluggable and the default routes per operation
+    (:class:`~geo_pointcloud.pointcloud.SmartCopcBackend`): it reads a real
+    ``.copc.laz`` / ``.laz`` (local or remote) via ``laspy`` (the ``[copc]``
+    extra, COPC octree windowed reads) or PDAL (the ``[pdal]`` extra), and writes
+    standards-compliant COPC via PDAL when installed. With no extra it falls back
+    to a portable, lossless local container that is explicitly not interoperable
+    COPC. COPC/LAZ are open formats and all processing is local; the two AWS keys
+    it declares are *Optional* (private S3 assets only), so an absent key never
+    blocks startup and the server always starts (Req 16.5).
     """
 
     pillar = "B"
@@ -137,9 +140,12 @@ class GeoPointcloudServer(BaseGeoServer):
                 name="read_pointcloud",
                 pillar=self.pillar,
                 capability_description=(
-                    "Read point-cloud data from a Cloud-Optimized Point Cloud "
-                    "(COPC) source, optionally clipped to a spatial window via "
-                    "the COPC octree index."
+                    "Read a point cloud, optionally clipped to a spatial window. "
+                    "Reads a real Cloud-Optimized Point Cloud / LAZ (local or "
+                    "remote) via the COPC octree index when the [copc] (laspy) "
+                    "or [pdal] extra is installed - windowed reads fetch only "
+                    "points inside the window; otherwise reads the pack's "
+                    "portable local container."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,
@@ -149,9 +155,11 @@ class GeoPointcloudServer(BaseGeoServer):
                 name="write_pointcloud",
                 pillar=self.pillar,
                 capability_description=(
-                    "Write point-cloud data to Cloud-Optimized Point Cloud "
-                    "(COPC) format, preserving the full point set and "
-                    "per-point attributes."
+                    "Write a point cloud, preserving the point set and per-point "
+                    "attributes. Writes standards-compliant COPC when the [pdal] "
+                    "extra is installed (or interoperable LAZ via the [copc] "
+                    "extra); otherwise writes a portable, lossless local "
+                    "container that is not interoperable COPC."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,
