@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "geo-stac"
-version = "0.2.0"
+version = "0.3.0"
 description = "Pillar A (MVP) MCP server: STAC catalog discovery across Earth Search, Planetary Computer, CMR-STAC, and more."
 requires-python = ">=3.10"
 license = "MIT-0"

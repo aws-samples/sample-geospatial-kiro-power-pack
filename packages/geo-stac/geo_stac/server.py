@@ -66,7 +66,7 @@ class GeoStacServer(BaseGeoServer):
 
     pillar = "A"
     server_name = "geo-stac"
-    version = "0.2.0"
+    version = "0.3.0"
 
     #: ``geo-stac`` wraps open STAC APIs (Requirement 7.9 MVP). The two keys
     #: below are *Optional*: open access works without them, but configuring
