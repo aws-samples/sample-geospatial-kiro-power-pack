@@ -62,6 +62,27 @@ async def test_catalog_returns_data(name, bbox, drange, collections) -> None:
         assert it.id and len(it.bbox) == 4 and it.datetime
 
 
+@pytest.mark.parametrize("name", list(KNOWN_STAC_ENDPOINTS))
+async def test_list_collections_live(name) -> None:
+    """Every catalog reports its collections (discovery of what to request)."""
+    from geo_stac.search import list_collections
+
+    result = await list_collections(catalog=name, limit=200)
+    assert result.returned > 0, f"{name} reported no collections"
+    assert all(c.id for c in result.collections)
+
+
+async def test_list_collections_query_filter_live() -> None:
+    """A 'sentinel' query narrows Planetary Computer's ~135 collections."""
+    from geo_stac.search import list_collections
+
+    all_pc = await list_collections(catalog="planetary-computer", limit=200)
+    s2 = await list_collections(catalog="planetary-computer", query="sentinel", limit=200)
+    assert 0 < s2.returned < all_pc.returned
+    assert all("sentinel" in (c.id + " " + (c.title or "")).lower() or
+               any("sentinel" in k.lower() for k in c.keywords) for c in s2.collections)
+
+
 async def test_federated_search_spans_multiple_catalogs() -> None:
     """A federated Sentinel-2 search returns items from >1 catalog (ES + PC)."""
     result = await stac_search_multi(

@@ -46,14 +46,23 @@ __all__ = [
     "stac_search_multi",
     "StacSourceStatus",
     "StacSearchResult",
+    "CollectionInfo",
+    "CollectionList",
+    "list_collections",
     "KNOWN_STAC_ENDPOINTS",
     "DEFAULT_STAC_API_URL",
     "MAX_ITEMS",
+    "MAX_COLLECTIONS",
 ]
 
 #: The configured maximum number of items returned per response (Requirement
 #: 7.1). A requested ``limit`` larger than this is clamped down to it.
 MAX_ITEMS: int = 1000
+
+#: Cap on collections returned by :func:`list_collections`, and on how many a
+#: single call will page through, so a large catalog (e.g. Planetary Computer's
+#: ~135) can be listed without an unbounded/flooding response.
+MAX_COLLECTIONS: int = 500
 
 #: Default STAC API root used when no explicit ``api_url`` is supplied. Earth
 #: Search (Element 84) is an open, no-credential STAC API.
@@ -466,6 +475,235 @@ async def stac_search_multi(
     sources.sort(key=lambda s: order.get(s.name, len(order)))
 
     return StacSearchResult(items=merged, sources=sources, partial=partial)
+
+
+class CollectionInfo(BaseModel):
+    """A summary of one STAC collection (what a catalog lets you request).
+
+    Carries the ``id`` you pass to ``stac_search``'s ``collections``, a
+    human ``title``/``description``, and the collection's spatial + temporal
+    extent so an agent can tell whether it covers the area/time of interest.
+    """
+
+    id: str
+    title: Optional[str] = None
+    description: Optional[str] = None
+    #: ``(west, south, east, north)`` overall extent, when the catalog reports it.
+    bbox: Optional[Tuple[float, float, float, float]] = None
+    #: ``(start, end)`` ISO-8601 temporal extent (``end`` may be ``None`` = open).
+    temporal_extent: Optional[Tuple[Optional[str], Optional[str]]] = None
+    license: Optional[str] = None
+    keywords: List[str] = Field(default_factory=list)
+
+
+class CollectionList(BaseModel):
+    """The result of :func:`list_collections` for one catalog.
+
+    ``collections`` are the (optionally filtered) collection summaries, capped
+    at :data:`MAX_COLLECTIONS`; ``returned`` is how many are included and
+    ``truncated`` is ``True`` when the catalog has more than were returned.
+    """
+
+    catalog: str
+    api_url: str
+    returned: int
+    truncated: bool = False
+    collections: List[CollectionInfo] = Field(default_factory=list)
+
+
+async def list_collections(
+    *,
+    catalog: Optional[str] = None,
+    api_url: Optional[str] = None,
+    query: Optional[str] = None,
+    limit: int = 100,
+    http: Optional[HttpClient] = None,
+) -> CollectionList:
+    """List the collections a STAC catalog offers (discover what to request).
+
+    Answers "what data can I request here?" — the ids returned are exactly what
+    ``stac_search``/``stac_search_multi`` accept in ``collections`` (needed for
+    Planetary Computer and CMR-STAC, which return nothing without one).
+
+    Parameters
+    ----------
+    catalog:
+        A known catalog name (one of :data:`KNOWN_STAC_ENDPOINTS`:
+        ``earth-search``, ``planetary-computer``, ``cmr-stac``, ``copernicus``,
+        ``usgs``). Mutually exclusive with ``api_url``.
+    api_url:
+        A STAC API root to list instead of a known catalog.
+    query:
+        Optional case-insensitive substring; keeps only collections whose id,
+        title, or keywords contain it (e.g. ``"sentinel"``, ``"landsat"``).
+    limit:
+        Max collections to return (1..:data:`MAX_COLLECTIONS`, default 100).
+    http:
+        Optional shared :class:`~geo_common.http.HttpClient`.
+
+    Returns
+    -------
+    CollectionList
+        The catalog's collection summaries (id/title/description/extent),
+        filtered by ``query`` and capped at ``limit``.
+
+    Raises
+    ------
+    ValidationError
+        For an unknown ``catalog``, both/neither of ``catalog``/``api_url``, or
+        a non-positive ``limit`` (before any network call).
+    """
+    if catalog is not None and api_url is not None:
+        raise ValidationError(
+            "provide either catalog or api_url, not both",
+            source=_SOURCE,
+            detail={"parameter": "catalog"},
+        )
+    if catalog is not None:
+        if catalog not in KNOWN_STAC_ENDPOINTS:
+            raise ValidationError(
+                "unknown catalog %r; choose one of: %s"
+                % (catalog, ", ".join(sorted(KNOWN_STAC_ENDPOINTS))),
+                source=_SOURCE,
+                detail={"parameter": "catalog", "known": sorted(KNOWN_STAC_ENDPOINTS)},
+            )
+        resolved_url = KNOWN_STAC_ENDPOINTS[catalog]
+        catalog_name = catalog
+    else:
+        resolved_url = api_url if api_url is not None else DEFAULT_STAC_API_URL
+        catalog_name = _host_label(resolved_url)
+
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+        raise ValidationError(
+            "limit must be a positive integer",
+            source=_SOURCE,
+            detail={"parameter": "limit"},
+        )
+    effective_limit = min(limit, MAX_COLLECTIONS)
+    needle = query.strip().lower() if isinstance(query, str) and query.strip() else None
+
+    owns_client = http is None
+    client = http if http is not None else HttpClient()
+    collected: List[CollectionInfo] = []
+    truncated = False
+    try:
+        url: Optional[str] = _collections_url(resolved_url)
+        scanned = 0
+        while url is not None and scanned < MAX_COLLECTIONS:
+            response = await client.get(url)
+            payload = _parse_json(response)
+            raw = payload.get("collections")
+            if not isinstance(raw, list):
+                break
+            for entry in raw:
+                scanned += 1
+                info = _collection_info(entry)
+                if info is None or not _matches_query(info, needle):
+                    continue
+                if len(collected) >= effective_limit:
+                    truncated = True
+                    break
+                collected.append(info)
+            if truncated:
+                break
+            url = _next_link(payload)
+    finally:
+        if owns_client:
+            await client.aclose()
+
+    return CollectionList(
+        catalog=catalog_name,
+        api_url=resolved_url,
+        returned=len(collected),
+        truncated=truncated,
+        collections=collected,
+    )
+
+
+def _collections_url(api_url: str) -> str:
+    """Build the STAC ``/collections`` URL from a STAC API root."""
+    root = api_url.rstrip("/")
+    if root.endswith("/collections"):
+        return root
+    return f"{root}/collections"
+
+
+def _next_link(payload: Dict[str, Any]) -> Optional[str]:
+    """Return the ``rel="next"`` pagination href from a STAC response, if any."""
+    for link in payload.get("links", []) or []:
+        if isinstance(link, dict) and link.get("rel") == "next":
+            href = link.get("href")
+            if isinstance(href, str) and href:
+                return href
+    return None
+
+
+def _host_label(url: str) -> str:
+    """A secret-free catalog label from an api_url (its host), or the url."""
+    try:
+        import httpx
+
+        return httpx.URL(url).host or url
+    except Exception:  # pragma: no cover - defensive
+        return url
+
+
+def _matches_query(info: "CollectionInfo", needle: Optional[str]) -> bool:
+    """Case-insensitive substring match over id/title/keywords, or all if none."""
+    if needle is None:
+        return True
+    haystack = " ".join(
+        [info.id, info.title or "", " ".join(info.keywords)]
+    ).lower()
+    return needle in haystack
+
+
+def _collection_info(entry: Any) -> Optional["CollectionInfo"]:
+    """Convert a STAC collection dict into a :class:`CollectionInfo`, or None."""
+    if not isinstance(entry, dict):
+        return None
+    cid = entry.get("id")
+    if not isinstance(cid, str) or not cid:
+        return None
+
+    desc = entry.get("description")
+    if isinstance(desc, str) and len(desc) > 300:
+        desc = desc[:297] + "..."
+
+    bbox = None
+    temporal = None
+    extent = entry.get("extent")
+    if isinstance(extent, dict):
+        spatial = extent.get("spatial")
+        if isinstance(spatial, dict):
+            boxes = spatial.get("bbox")
+            if isinstance(boxes, list) and boxes and isinstance(boxes[0], list):
+                b = [v for v in boxes[0] if isinstance(v, (int, float)) and not isinstance(v, bool)]
+                if len(b) == 4:
+                    bbox = (b[0], b[1], b[2], b[3])
+                elif len(b) == 6:
+                    bbox = (b[0], b[1], b[3], b[4])
+        temporal_ext = extent.get("temporal")
+        if isinstance(temporal_ext, dict):
+            intervals = temporal_ext.get("interval")
+            if isinstance(intervals, list) and intervals and isinstance(intervals[0], list):
+                iv = intervals[0]
+                start = iv[0] if len(iv) >= 1 and isinstance(iv[0], str) else None
+                end = iv[1] if len(iv) >= 2 and isinstance(iv[1], str) else None
+                temporal = (start, end)
+
+    keywords = entry.get("keywords")
+    keywords = [k for k in keywords if isinstance(k, str)] if isinstance(keywords, list) else []
+
+    return CollectionInfo(
+        id=cid,
+        title=entry.get("title") if isinstance(entry.get("title"), str) else None,
+        description=desc if isinstance(desc, str) else None,
+        bbox=bbox,
+        temporal_extent=temporal,
+        license=entry.get("license") if isinstance(entry.get("license"), str) else None,
+        keywords=keywords,
+    )
 
 
 # ---------------------------------------------------------------------------

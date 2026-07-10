@@ -16,7 +16,8 @@ fileMatchPattern:
 Drive a discover → process → analyze pipeline that finds assets via STAC, reads
 only the pixels needed, analyzes them, and reports full provenance.
 
-- Provider tools: `geo-stac.stac_search`, `geo-raster.read_window`,
+- Provider tools: `geo-stac.list_collections`, `geo-stac.stac_search`,
+  `geo-raster.read_window`,
   `geo-raster.band_math`, plus an analysis tool
   (`geo-foundation-models.embed_tile`, `geo-raster.zonal_statistics`, ...)
 - Requirements: 7.1 (STAC search ≤30s, assets + spatio-temporal metadata, cap
@@ -46,9 +47,14 @@ no longer matches.
 ## Steps (in order)
 
 1. **Define the query.** Establish the spatial extent (`bbox`), the temporal
-   range (`datetime_range`), and target `collections`. Validate the bbox and
-   that the range start is not later than its end; reject malformed parameters
-   with an `Error_Taxonomy` validation error before searching (Requirement 7.12).
+   range (`datetime_range`), and target `collections`. When you don't know a
+   catalog's collection ids — or you're targeting Planetary Computer / CMR-STAC,
+   which return nothing without a `collections` filter — call
+   `geo-stac.list_collections(catalog=..., query="sentinel")` first to discover
+   what the catalog offers; the returned ids are exactly what `stac_search`
+   accepts. Validate the bbox and that the range start is not later than its
+   end; reject malformed parameters with an `Error_Taxonomy` validation error
+   before searching (Requirement 7.12).
 2. **Search the catalog.** Call
    `geo-stac.stac_search(bbox=..., datetime_range=..., collections=...,
    limit<=1000)`. Expect results within 30s, each item carrying its asset

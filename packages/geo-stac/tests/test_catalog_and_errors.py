@@ -68,7 +68,11 @@ def test_catalog_entries_register_stac_search_as_geo_stac_provider() -> None:
     server = GeoStacServer()
     entries = server.catalog_entries()
 
-    assert {e.name for e in entries} == {"stac_search", "stac_search_multi"}
+    assert {e.name for e in entries} == {
+        "stac_search",
+        "stac_search_multi",
+        "list_collections",
+    }
     entry = next(e for e in entries if e.name == "stac_search")
     assert entry.name == "stac_search"
     assert entry.pillar == "A"

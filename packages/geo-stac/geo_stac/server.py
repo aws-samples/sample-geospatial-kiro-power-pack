@@ -44,8 +44,10 @@ from geo_common.server import BaseGeoServer
 from geo_stac.search import (
     DEFAULT_STAC_API_URL,
     KNOWN_STAC_ENDPOINTS,
+    CollectionList,
     StacItem,
     StacSearchResult,
+    list_collections,
     stac_search,
     stac_search_multi,
 )
@@ -101,6 +103,7 @@ class GeoStacServer(BaseGeoServer):
         self.api_url = api_url
         self.register_tool("stac_search", self.stac_search)
         self.register_tool("stac_search_multi", self.stac_search_multi)
+        self.register_tool("list_collections", self.list_collections)
 
     # ------------------------------------------------------------------
     # Catalog + credential declaration (Requirements 2.1, 11.3, 16.1)
@@ -142,6 +145,20 @@ class GeoStacServer(BaseGeoServer):
                     "robin merges + de-duplicates with per-source provenance and "
                     "graceful degradation (partial results when a source is "
                     "unavailable). Collection ids differ per catalog."
+                ),
+                openness_tier=OpennessTier.OPEN,
+                provider_server=self.server_name,
+            ),
+            CatalogEntry(
+                name="list_collections",
+                pillar=self.pillar,
+                capability_description=(
+                    "Discover what a STAC catalog offers: list its collections "
+                    "(id + title + description + spatial/temporal extent), "
+                    "optionally filtered by a substring (e.g. 'sentinel'). The "
+                    "ids are exactly what stac_search's 'collections' accepts — "
+                    "call this to find the right collection for Planetary "
+                    "Computer / CMR-STAC, which need a collections filter."
                 ),
                 openness_tier=OpennessTier.OPEN,
                 provider_server=self.server_name,
@@ -233,6 +250,41 @@ class GeoStacServer(BaseGeoServer):
             endpoints=dict(KNOWN_STAC_ENDPOINTS),
             dedupe=dedupe,
         )
+
+    async def list_collections(
+        self,
+        *,
+        catalog: Optional[str] = None,
+        api_url: Optional[str] = None,
+        query: Optional[str] = None,
+        limit: int = 100,
+    ) -> CollectionList:
+        """List the collections a STAC catalog offers (discover what to request).
+
+        Answers "what data can I request here?" — the returned ids are exactly
+        what ``stac_search`` / ``stac_search_multi`` accept in ``collections``
+        (required by Planetary Computer and CMR-STAC). Pass a known ``catalog``
+        name (``earth-search``, ``planetary-computer``, ``cmr-stac``,
+        ``copernicus``, ``usgs``) or an ``api_url``, and an optional ``query``
+        substring (e.g. ``"sentinel"``) to narrow a large catalog. An unknown
+        catalog, both/neither of ``catalog``/``api_url``, or a non-positive
+        ``limit`` raises a ``ValidationError`` before any network call;
+        source failures map onto the shared ``Error_Taxonomy``.
+        """
+        try:
+            return await list_collections(
+                catalog=catalog,
+                api_url=api_url,
+                query=query,
+                limit=limit,
+                http=self.http,
+            )
+        except GeoError as exc:
+            raise self._refine_stac_error(exc) from exc
+        except Exception as exc:  # pragma: no cover - defensive catch-all
+            raise self._refine_stac_error(
+                self.map_error(exc, source=self.server_name)
+            ) from exc
 
     def _refine_stac_error(self, exc: GeoError) -> GeoError:
         """Refine a taxonomy-classified STAC error for Requirements 7.8 / 7.11.
