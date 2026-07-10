@@ -49,7 +49,7 @@ class GeoWeatherClimateServer(BaseGeoServer):
 
     pillar = "A"
     server_name = "geo-weather-climate"
-    version = "0.2.0"
+    version = "0.3.0"
 
     #: The wrapped NOAA CDO source can use this ``mcp.json`` key for richer
     #: access, but it is *Optional*: Open-Meteo (weather + air-quality) / NWS
