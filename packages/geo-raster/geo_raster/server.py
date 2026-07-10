@@ -145,8 +145,9 @@ class GeoRasterServer(BaseGeoServer):
                 capability_description=(
                     "Compute a true per-pixel band-math index (NDVI/NDWI/NBR) "
                     "across multiple single-band COGs bound to B<n> tokens, then "
-                    "reduce it to per-zone statistics (min/max/mean/sum/count) "
-                    "over vector zones in one call. Bridges indices whose bands "
+                    "reduce it to per-zone statistics (min/max/mean/sum/count/"
+                    "population standard deviation) over vector zones in one "
+                    "call. Bridges indices whose bands "
                     "live in separate assets (e.g. Sentinel-2 B08 + B04)."
                 ),
                 openness_tier=OpennessTier.OPEN,

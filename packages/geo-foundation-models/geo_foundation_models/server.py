@@ -2,10 +2,13 @@
 
 This module wires the embedding core (:mod:`geo_foundation_models.embedding`)
 into the shared :class:`~geo_common.server.BaseGeoServer` contract and exposes
-``embed_tile``, ``detect_change``, and ``segment`` as MCP tools.
+its embedding, change-detection, segmentation, and published-embedding-lookup
+capabilities as MCP tools (``embed_tile``, ``embed_asset``, ``embed_assets``,
+``detect_change``, ``detect_change_from_assets``, ``change_map``, ``segment``,
+``lookup_embeddings``, ``available_embedding_periods``).
 
 It also declares the server's Resource Catalog entries (one per capability -
-Req 2.1, 11.3) and its single ``mcp.json`` credential (Req 16.1), and inherits
+Req 2.1, 11.3) and its ``mcp.json`` credentials (Req 16.1), and inherits
 the taxonomy error mapping from :class:`~geo_common.server.BaseGeoServer` so any
 library/transport/upstream failure maps onto exactly one ``Error_Taxonomy``
 category (Req 11.2, 11.5).
@@ -13,7 +16,7 @@ category (Req 11.2, 11.5).
 
 from __future__ import annotations
 
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, Iterable, List, Optional, Sequence
 
 from geo_common.models import (
     CatalogEntry,
@@ -88,7 +91,11 @@ class GeoFoundationModelsServer(BaseGeoServer):
 
     Holds the configurable :class:`ModelRegistry` (Clay, Prithvi-EO-2.0,
     SatCLIP and any registered additions - Requirement 9.2) and the embedding
-    backend, and registers ``embed_tile`` as an MCP tool.
+    backend, and registers the embedding, change-detection, segmentation, and
+    published-embedding-lookup tools (``embed_tile``, ``embed_asset``,
+    ``embed_assets``, ``detect_change``, ``detect_change_from_assets``,
+    ``change_map``, ``segment``, ``lookup_embeddings``,
+    ``available_embedding_periods``).
     """
 
     pillar = "C"
@@ -132,9 +139,10 @@ class GeoFoundationModelsServer(BaseGeoServer):
     def catalog_entries(self) -> "List[CatalogEntry]":
         """The Pillar C capabilities this server registers (Req 2.1, 11.3).
 
-        One :class:`~geo_common.models.CatalogEntry` per exposed tool -
-        ``embed_tile``, ``detect_change``, and ``segment`` - each naming this
-        server as ``provider_server`` (Req 11.3) and recording the entry name,
+        One :class:`~geo_common.models.CatalogEntry` per exposed tool (embedding,
+        change detection, segmentation, and published-embedding lookup) - each
+        naming this server as ``provider_server`` (Req 11.3) and recording the
+        entry name,
         pillar, capability description, and ``Openness_Tier`` required by the
         Resource Catalog (Req 2.1). The geospatial foundation models bundled
         here (Clay, Prithvi-EO-2.0, SatCLIP, SAMGeo) are openly licensed, so
@@ -281,10 +289,12 @@ class GeoFoundationModelsServer(BaseGeoServer):
     def required_credentials(self) -> "List[CredentialSpec]":
         """The ``mcp.json`` keys this server reads, with classification (Req 16.1).
 
-        Declares the single Optional ``HF_TOKEN`` (Hugging Face) credential used
-        only for gated model weights. Because it is
-        :attr:`CredentialClassification.OPTIONAL`, an absent value never blocks
-        startup (Req 16.5): openly licensed models load without it.
+        Declares two Optional keys: ``HF_TOKEN`` (Hugging Face), used only for
+        gated model weights, and ``GEO_FM_EMBED_API_KEY``, used only when a
+        remote real-weight embedding endpoint is configured. Both are
+        :attr:`CredentialClassification.OPTIONAL`, so an absent value never
+        blocks startup (Req 16.5): openly licensed models and the default
+        backend load without either.
         """
         return [
             CredentialSpec(

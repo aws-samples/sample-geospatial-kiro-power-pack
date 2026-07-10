@@ -205,11 +205,14 @@ class GeoWarehouseServer(BaseGeoServer):
 def main() -> None:
     """Console entry point: serve geo-warehouse over MCP stdio.
 
-    Wires the auto-configured warehouse engines (BigQuery when
-    ``BIGQUERY_CREDENTIALS`` is set; the other engines remain inject-only), runs
-    the startup credential guard, then serves this server's registered tools
-    over stdin/stdout via the shared geo-common MCP runtime until the client
-    disconnects.
+    Wires the auto-configured warehouse engines via
+    :func:`~geo_warehouse.wiring.default_warehouse_engines` - each of BigQuery,
+    Redshift, Snowflake, and Databricks is wired when its ``mcp.json``
+    credential (``BIGQUERY_CREDENTIALS`` / ``REDSHIFT_CONNECTION`` /
+    ``SNOWFLAKE_CONNECTION`` / ``DATABRICKS_CONNECTION``) is set, and absent
+    otherwise - runs the startup credential guard, then serves this server's
+    registered tools over stdin/stdout via the shared geo-common MCP runtime
+    until the client disconnects.
     """
     from geo_warehouse.wiring import default_warehouse_engines
 
