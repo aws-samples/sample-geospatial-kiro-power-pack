@@ -64,8 +64,9 @@ class Geo3DServer(BaseGeoServer):
         (
             "points_to_3d_tiles",
             "Tile a point cloud into an OGC 3D Tiles tileset: write a "
-            "tileset.json plus a binary .pnts point-cloud tile (single root "
-            "tile; pairs with geo-pointcloud).",
+            "tileset.json plus binary .pnts point-cloud tile(s) - a single root "
+            "tile by default, or a nested octree with level-of-detail when "
+            "'max_points_per_tile' is set (pairs with geo-pointcloud).",
         ),
         (
             "dem_to_mesh",

@@ -135,7 +135,7 @@ Per-server credential keys are in the Credentials reference below.
 | 7 | `geo-ogc` | A | Open | 1 | fetch GeoJSON features from any OGC API - Features service (pygeoapi, GeoServer OGC API, ldproxy) by endpoint + collection |
 | 8 | `geo-ops` | B | Open | 7 | CRS transforms, geometry validation/ops, spatial join, overlay, buffer, convex hull, simplify (shape-preserving vertex reduction) (PyProj, Shapely/GEOS, GeoPandas) |
 | 9 | `geo-formats` | B | Open | 3 | COG / GeoParquet conversion + validation; `to_geoparquet` `src` takes inline GeoJSON **or** a path/href (local, or `s3://`/`https://` via the `[remote]` extra) so large vectors are referenced by location, not pasted inline |
-| 10 | `geo-query` | B | Open | 1 | ad-hoc, in-process spatial SQL via DuckDB Spatial (open default, opt-in `[duckdb]` extra) / Amazon Athena over S3 (bring-your-own AWS creds) — for warehouse-scale SQL see `geo-warehouse` |
+| 10 | `geo-query` | B | Open | 1 | ad-hoc, in-process spatial SQL via DuckDB Spatial (open default, opt-in `[duckdb]` extra) / Amazon Athena over S3 (bring-your-own AWS creds; Athena also requires `ATHENA_S3_STAGING_DIR`) — for warehouse-scale SQL see `geo-warehouse` |
 | 11 | `geo-raster` | B | Open | 4 | windowed COG reads (uncompressed/DEFLATE/LZW; int + float, incl. floating-point predictor) + band math (NDVI/NDWI/NBR); zonal statistics over vector zones; zonal band math (per-pixel index across separate single-band COGs, reduced per zone). Pure-Python by default; `geo-raster[fast]` adds a numpy-accelerated zonal engine |
 | 12 | `geo-pointcloud` | B | Open | 2 | Cloud-Optimized Point Cloud (COPC) read/write |
 | 13 | `geo-index` | B | Open | 1 | H3 (0-15) and S2 (0-30) spatial indexing |

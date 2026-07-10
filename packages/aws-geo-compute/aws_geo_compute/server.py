@@ -342,12 +342,11 @@ class AwsGeoComputeServer(BaseGeoServer):
         the provider (Req 11.3).
         """
         jobs_configured = self._jobs is not None
-        gate_configured = self._gate is not None
         specs = [
             (
                 "plan_execution",
                 OpennessTier.FREE_TIER,
-                gate_configured,
+                True,
                 "Select a processing engine from the documented decision tree "
                 "over dataset size and access pattern, and decide whether to "
                 "delegate heavy tasks to AWS compute.",
