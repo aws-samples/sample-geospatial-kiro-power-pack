@@ -73,7 +73,7 @@ class GeoEmbeddingSearchServer(BaseGeoServer):
 
     pillar = "C"
     server_name = "geo-embedding-search"
-    version = "0.2.0"
+    version = "0.3.0"
 
     def __init__(
         self,
