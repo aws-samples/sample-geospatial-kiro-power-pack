@@ -1,0 +1,15 @@
+{
+  "description": "Monthly vegetation summary for the Denver metro used by the capstone dashboard time slider. Values are representative sample data (mean NDVI across the AOI) for development; the ETL lab (Lab 14) regenerates this from real scenes.",
+  "aoi": "Denver metro",
+  "months": [
+    { "month": "2024-01", "mean_ndvi": 0.18, "alert_count": 0 },
+    { "month": "2024-02", "mean_ndvi": 0.19, "alert_count": 0 },
+    { "month": "2024-03", "mean_ndvi": 0.27, "alert_count": 1 },
+    { "month": "2024-04", "mean_ndvi": 0.41, "alert_count": 0 },
+    { "month": "2024-05", "mean_ndvi": 0.55, "alert_count": 0 },
+    { "month": "2024-06", "mean_ndvi": 0.62, "alert_count": 2 },
+    { "month": "2024-07", "mean_ndvi": 0.59, "alert_count": 1 },
+    { "month": "2024-08", "mean_ndvi": 0.51, "alert_count": 3 },
+    { "month": "2024-09", "mean_ndvi": 0.42, "alert_count": 1 }
+  ]
+}
