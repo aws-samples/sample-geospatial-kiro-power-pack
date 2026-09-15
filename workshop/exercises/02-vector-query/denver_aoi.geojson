@@ -1,0 +1,51 @@
+{
+  "type": "FeatureCollection",
+  "name": "denver_aoi",
+  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Denver Area of Interest",
+        "description": "Approximate Denver metro bounding polygon (EPSG:4326) used as the default AOI for vector and STAC queries.",
+        "city": "Denver",
+        "state": "Colorado"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-105.11, 39.61],
+            [-104.60, 39.61],
+            [-104.60, 39.91],
+            [-105.11, 39.91],
+            [-105.11, 39.61]
+          ]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Denver City and County Building",
+        "description": "Downtown reference point used in several exercises.",
+        "type": "landmark"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-104.9903, 39.7392]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Civic Center Park",
+        "type": "park"
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-104.9876, 39.7392]
+      }
+    }
+  ]
+}

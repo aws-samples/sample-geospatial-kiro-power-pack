@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Denver Vegetation Monitor — GeoAI Workshop</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; }
+    #map { height: 100vh; width: 100%; }
+    .panel {
+      position: absolute; top: 12px; right: 12px; z-index: 1000;
+      background: rgba(255,255,255,0.95); padding: 12px 14px; border-radius: 8px;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.3); max-width: 260px; font-size: 13px;
+    }
+    .panel h1 { font-size: 15px; margin: 0 0 6px; }
+    .legend i { display: inline-block; width: 14px; height: 14px; margin-right: 6px; vertical-align: middle; }
+    #status { color: #555; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <div class="panel">
+    <h1>Denver Vegetation Monitor</h1>
+    <div class="legend">
+      <div><i style="background:#1a9850"></i> NDVI &ge; 0.6 (healthy)</div>
+      <div><i style="background:#fee08b"></i> NDVI 0.3&ndash;0.6 (moderate)</div>
+      <div><i style="background:#d73027"></i> NDVI &lt; 0.3 (sparse/urban)</div>
+      <div><i style="background:#7b3294"></i> Vegetation-loss alert</div>
+    </div>
+    <p id="status">Loading data&hellip;</p>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Denver Vegetation Monitor — capstone starter.
+    // Reads the GeoJSON layers produced by the ETL lab (Lab 14). During the
+    // workshop, point these paths at the files you export, or use the sample
+    // data in ../sample_data/. This template intentionally stays dependency-free
+    // (just Leaflet from a CDN) so participants can extend it with Kiro.
+
+    const DATA = {
+      heatmap: "../sample_data/ndvi_heatmap.geojson",
+      alerts: "../sample_data/alerts.geojson"
+    };
+
+    const map = L.map("map").setView([39.74, -104.95], 11);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    function ndviColor(v) {
+      if (v >= 0.6) return "#1a9850";
+      if (v >= 0.3) return "#fee08b";
+      return "#d73027";
+    }
+
+    function styleHeatmap(feature) {
+      const p = feature.properties || {};
+      if (p.alert_status && p.alert_status !== "none") {
+        return { color: "#7b3294", weight: 1, fillColor: "#7b3294", fillOpacity: 0.55 };
+      }
+      return { color: "#333", weight: 1, fillColor: ndviColor(p.mean_ndvi ?? 0), fillOpacity: 0.55 };
+    }
+
+    const status = document.getElementById("status");
+
+    fetch(DATA.heatmap)
+      .then(r => r.json())
+      .then(gj => {
+        L.geoJSON(gj, {
+          style: styleHeatmap,
+          onEachFeature: (f, layer) => {
+            const p = f.properties || {};
+            layer.bindPopup(
+              `<b>H3:</b> ${p.h3_cell ?? "n/a"}<br>` +
+              `<b>Month:</b> ${p.month ?? "n/a"}<br>` +
+              `<b>Mean NDVI:</b> ${p.mean_ndvi ?? "n/a"}<br>` +
+              `<b>Alert:</b> ${p.alert_status ?? "none"}`
+            );
+          }
+        }).addTo(map);
+        status.textContent = "NDVI heatmap loaded.";
+      })
+      .catch(e => { status.textContent = "Could not load heatmap: " + e; });
+
+    fetch(DATA.alerts)
+      .then(r => r.json())
+      .then(gj => {
+        L.geoJSON(gj, {
+          style: { color: "#7b3294", weight: 2, fillColor: "#7b3294", fillOpacity: 0.35, dashArray: "4" },
+          onEachFeature: (f, layer) => {
+            const p = f.properties || {};
+            layer.bindPopup(
+              `<b>ALERT:</b> ${p.alert_type ?? "n/a"}<br>` +
+              `<b>H3:</b> ${p.h3_cell ?? "n/a"}<br>` +
+              `<b>Month:</b> ${p.month ?? "n/a"}<br>` +
+              `<b>Magnitude:</b> ${p.magnitude ?? "n/a"}`
+            );
+          }
+        }).addTo(map);
+      })
+      .catch(() => { /* alerts optional */ });
+  </script>
+</body>
+</html>

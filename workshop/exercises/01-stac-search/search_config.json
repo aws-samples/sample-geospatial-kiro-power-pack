@@ -1,0 +1,36 @@
+{
+  "description": "Pre-configured STAC catalog endpoints and default search parameters for Lab 03 (STAC catalog search). Reference these values in your prompts to geo-stac.",
+  "catalogs": {
+    "element84_earth_search": {
+      "url": "https://earth-search.aws.element84.com/v1",
+      "collections": ["sentinel-2-l2a", "sentinel-2-l1c", "landsat-c2-l2"],
+      "notes": "Primary open catalog used throughout the workshop. Points to Cloud-Optimized GeoTIFFs on the public sentinel-cogs S3 bucket."
+    },
+    "usgs_landsatlook": {
+      "url": "https://landsatlook.usgs.gov/stac-server",
+      "collections": ["landsat-c2l2-sr", "landsat-c2l2-st"],
+      "notes": "USGS Landsat Collection 2 Level-2 surface reflectance."
+    }
+  },
+  "default_area_of_interest": {
+    "name": "Denver, Colorado",
+    "bbox": [-105.11, 39.61, -104.60, 39.91],
+    "center": [-104.9903, 39.7392],
+    "utm_epsg": 32613,
+    "notes": "Denver metro bounding box in EPSG:4326 (lon_min, lat_min, lon_max, lat_max). UTM Zone 13N is the correct projected CRS for area/distance work here."
+  },
+  "default_search": {
+    "collection": "sentinel-2-l2a",
+    "datetime": "2024-06-01/2024-06-30",
+    "max_cloud_cover_percent": 20,
+    "limit": 10
+  },
+  "sentinel2_bands": {
+    "B02": { "name": "Blue", "resolution_m": 10 },
+    "B03": { "name": "Green", "resolution_m": 10 },
+    "B04": { "name": "Red", "resolution_m": 10 },
+    "B08": { "name": "NIR", "resolution_m": 10 },
+    "B11": { "name": "SWIR1", "resolution_m": 20 },
+    "B12": { "name": "SWIR2", "resolution_m": 20 }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "description": "Pre-selected Sentinel-2 L2A Cloud-Optimized GeoTIFF (COG) band URLs over Denver for Lab 07 (band math: NDVI, NDWI, NDBI). These point to the public sentinel-cogs S3 bucket (no credentials required with --no-sign-request). If a specific scene is unavailable, use geo-stac to search for a current low-cloud scene over the Denver AOI and substitute the URLs.",
+  "area_of_interest": {
+    "name": "Denver, Colorado",
+    "bbox": [-105.11, 39.61, -104.60, 39.91],
+    "utm_epsg": 32613
+  },
+  "band_formulas": {
+    "NDVI": "(B08 - B04) / (B08 + B04)",
+    "NDWI": "(B03 - B08) / (B03 + B08)",
+    "NDBI": "(B11 - B08) / (B11 + B08)"
+  },
+  "scenes": [
+    {
+      "label": "denver_summer_2024",
+      "datetime": "2024-06-15",
+      "note": "Summer scene — expect high NDVI in parks and irrigated areas.",
+      "bands": {
+        "B02": "s3://sentinel-cogs/sentinel-s2-l2a-cogs/13/T/DE/2024/6/S2B_13TDE_20240615_0_L2A/B02.tif",
+        "B03": "s3://sentinel-cogs/sentinel-s2-l2a-cogs/13/T/DE/2024/6/S2B_13TDE_20240615_0_L2A/B03.tif",
+        "B04": "s3://sentinel-cogs/sentinel-s2-l2a-cogs/13/T/DE/2024/6/S2B_13TDE_20240615_0_L2A/B04.tif",
+        "B08": "s3://sentinel-cogs/sentinel-s2-l2a-cogs/13/T/DE/2024/6/S2B_13TDE_20240615_0_L2A/B08.tif",
+        "B11": "s3://sentinel-cogs/sentinel-s2-l2a-cogs/13/T/DE/2024/6/S2B_13TDE_20240615_0_L2A/B11.tif",
+        "B12": "s3://sentinel-cogs/sentinel-s2-l2a-cogs/13/T/DE/2024/6/S2B_13TDE_20240615_0_L2A/B12.tif"
+      }
+    },
+    {
+      "label": "denver_winter_2024",
+      "datetime": "2024-01-20",
+      "note": "Winter scene — lower NDVI, useful for the seasonal time-series exercise. Substitute a real low-cloud January scene ID from geo-stac if this one is cloudy.",
+      "bands": {
+        "B03": "s3://sentinel-cogs/sentinel-s2-l2a-cogs/13/T/DE/2024/1/S2B_13TDE_20240120_0_L2A/B03.tif",
+        "B04": "s3://sentinel-cogs/sentinel-s2-l2a-cogs/13/T/DE/2024/1/S2B_13TDE_20240120_0_L2A/B04.tif",
+        "B08": "s3://sentinel-cogs/sentinel-s2-l2a-cogs/13/T/DE/2024/1/S2B_13TDE_20240120_0_L2A/B08.tif"
+      }
+    }
+  ],
+  "windowed_read_example": {
+    "center": [-104.955, 39.748],
+    "note": "Denver's City Park — used in the windowed-read exercise.",
+    "window_size_m": 5000,
+    "resolution_m": 10,
+    "expected_pixels_per_side": 500,
+    "expected_total_pixels": 250000
+  }
+}

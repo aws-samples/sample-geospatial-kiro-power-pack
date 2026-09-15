@@ -1,0 +1,17 @@
+{
+  "type": "FeatureCollection",
+  "name": "ndvi_heatmap",
+  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+  "features": [
+    { "type": "Feature", "properties": { "h3_cell": "8926835283bffff", "month": "2024-06", "mean_ndvi": 0.71, "alert_status": "none" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-104.960, 39.744], [-104.950, 39.744], [-104.950, 39.752], [-104.960, 39.752], [-104.960, 39.744]]] } },
+    { "type": "Feature", "properties": { "h3_cell": "89268352807ffff", "month": "2024-06", "mean_ndvi": 0.68, "alert_status": "none" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-104.975, 39.700], [-104.965, 39.700], [-104.965, 39.708], [-104.975, 39.708], [-104.975, 39.700]]] } },
+    { "type": "Feature", "properties": { "h3_cell": "8926835280bffff", "month": "2024-06", "mean_ndvi": 0.12, "alert_status": "none" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-105.000, 39.744], [-104.990, 39.744], [-104.990, 39.752], [-105.000, 39.752], [-105.000, 39.744]]] } },
+    { "type": "Feature", "properties": { "h3_cell": "89268352873ffff", "month": "2024-06", "mean_ndvi": 0.34, "alert_status": "vegetation_loss_alert" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-104.900, 39.762], [-104.890, 39.762], [-104.890, 39.770], [-104.900, 39.770], [-104.900, 39.762]]] } },
+    { "type": "Feature", "properties": { "h3_cell": "8926835288fffff", "month": "2024-06", "mean_ndvi": 0.45, "alert_status": "none" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-104.885, 39.770], [-104.875, 39.770], [-104.875, 39.778], [-104.885, 39.778], [-104.885, 39.770]]] } }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "description": "Pre-selected tile bounding boxes and time periods for Lab 11 (change detection). Each entry is a small AOI over the Denver area with an expected change character, so exercises produce interpretable results. Feed these bboxes and dates to geo-foundation-models change_detect (or embed_tile + difference).",
+  "crs": "EPSG:4326",
+  "default_threshold": 0.3,
+  "tiles": [
+    {
+      "label": "denver_metro_seasonal",
+      "bbox": [-105.1, 39.6, -104.8, 39.9],
+      "baseline_datetime": "2024-01-20",
+      "compare_datetime": "2024-06-15",
+      "expected_change": "vegetation green-up (deciduous leaf-out, agriculture, snow melt)",
+      "note": "Exercise 1 — seasonal change with threshold 0.3."
+    },
+    {
+      "label": "den_airport_development",
+      "bbox": [-104.72, 39.83, -104.62, 39.90],
+      "baseline_datetime": "2023-06-15",
+      "compare_datetime": "2024-06-15",
+      "expected_change": "urban development / new construction near DEN",
+      "note": "Exercise 2 — set threshold 0.4 to catch structural change only."
+    },
+    {
+      "label": "downtown_stable",
+      "bbox": [-105.005, 39.740, -104.985, 39.758],
+      "baseline_datetime": "2023-06-15",
+      "compare_datetime": "2024-06-15",
+      "expected_change": "minimal (stable built environment)",
+      "note": "Exercise 3 control area — expect lowest change."
+    },
+    {
+      "label": "eastern_suburbs_growth",
+      "bbox": [-104.80, 39.60, -104.70, 39.70],
+      "baseline_datetime": "2023-06-15",
+      "compare_datetime": "2024-06-15",
+      "expected_change": "active suburban development",
+      "note": "Exercise 3 — expect highest change of the three areas."
+    },
+    {
+      "label": "mountain_foothills",
+      "bbox": [-105.30, 39.60, -105.20, 39.70],
+      "baseline_datetime": "2023-06-15",
+      "compare_datetime": "2024-06-15",
+      "expected_change": "moderate (seasonal vegetation)",
+      "note": "Exercise 3 — natural area, moderate change."
+    },
+    {
+      "label": "forest_west_baseline",
+      "bbox": [-105.40, 39.65, -105.32, 39.72],
+      "baseline_datetime": "2024-06-15",
+      "compare_datetime": "2024-09-15",
+      "monitoring_similarity_alert_below": 0.85,
+      "expected_change": "deforestation early-warning pattern",
+      "note": "Exercise 5 — baseline + monitor; flag if similarity drops below 0.85."
+    }
+  ]
+}

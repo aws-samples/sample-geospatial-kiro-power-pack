@@ -1,0 +1,16 @@
+{
+  "description": "Landscape tile locations for Lab 10 (generate satellite embeddings). Each tile is a small bbox over a distinct landscape type so embedding comparisons (Exercises 2-4) produce clear similarity differences. Feed these bboxes to geo-foundation-models embed_tile with bands B02, B03, B04, B08.",
+  "crs": "EPSG:4326",
+  "embedding_dim": 1024,
+  "backend": "clay-v1.5-standin",
+  "bands": ["B02", "B03", "B04", "B08"],
+  "tiles": [
+    { "label": "downtown_urban", "landscape": "urban", "bbox": [-105.00, 39.74, -104.98, 39.76] },
+    { "label": "rocky_mtn_forest", "landscape": "forest", "bbox": [-105.68, 40.34, -105.66, 40.36], "note": "Rocky Mountain National Park area." },
+    { "label": "lakewood_suburban", "landscape": "suburban", "bbox": [-105.09, 39.70, -105.07, 39.72] },
+    { "label": "phoenix_suburban", "landscape": "suburban", "bbox": [-112.10, 33.55, -112.08, 33.57], "note": "Cross-city suburban comparison (Exercise 3)." },
+    { "label": "city_park", "landscape": "park", "bbox": [-104.96, 39.74, -104.94, 39.76] },
+    { "label": "eastern_plains_ag", "landscape": "agricultural", "bbox": [-104.10, 39.70, -104.08, 39.72] },
+    { "label": "foothills_mountainous", "landscape": "mountainous", "bbox": [-105.30, 39.66, -105.28, 39.68] }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "type": "FeatureCollection",
+  "name": "denver_neighborhoods",
+  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "neighborhood": "Downtown", "expected_ndvi": "low", "note": "Dense urban core — low vegetation, high built-up index." },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-105.005, 39.740], [-104.985, 39.740], [-104.985, 39.758], [-105.005, 39.758], [-105.005, 39.740]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "neighborhood": "City Park West", "expected_ndvi": "high", "note": "Contains City Park — expect the greenest zone." },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-104.965, 39.740], [-104.945, 39.740], [-104.945, 39.758], [-104.965, 39.758], [-104.965, 39.740]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "neighborhood": "Washington Park", "expected_ndvi": "high", "note": "Large park + tree-lined residential streets." },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-104.980, 39.695], [-104.960, 39.695], [-104.960, 39.715], [-104.980, 39.715], [-104.980, 39.695]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "neighborhood": "Five Points", "expected_ndvi": "low", "note": "Mixed urban/industrial northeast of downtown." },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-104.985, 39.755], [-104.965, 39.755], [-104.965, 39.775], [-104.985, 39.775], [-104.985, 39.755]]]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": { "neighborhood": "Stapleton/Central Park", "expected_ndvi": "moderate", "note": "Planned residential with parks and open space." },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [[[-104.900, 39.760], [-104.870, 39.760], [-104.870, 39.785], [-104.900, 39.785], [-104.900, 39.760]]]
+      }
+    }
+  ]
+}

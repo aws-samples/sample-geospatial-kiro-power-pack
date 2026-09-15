@@ -1,0 +1,47 @@
+{
+  "type": "FeatureCollection",
+  "name": "sample_points",
+  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "id": 1, "name": "Denver City and County Building", "note": "Downtown reference point for CRS transform exercises." },
+      "geometry": { "type": "Point", "coordinates": [-104.9903, 39.7392] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 2, "name": "City Park", "note": "~5km NE of downtown." },
+      "geometry": { "type": "Point", "coordinates": [-104.9550, 39.7480] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 3, "name": "Denver International Airport (DEN)", "note": "Far NE of the metro, useful for a wider-baseline transform." },
+      "geometry": { "type": "Point", "coordinates": [-104.6737, 39.8561] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "id": 4, "name": "Red Rocks (foothills)", "note": "West of Denver near the mountain front." },
+      "geometry": { "type": "Point", "coordinates": [-105.2056, 39.6655] }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": 5,
+        "name": "Invalid bowtie polygon (for validate_geometry exercise)",
+        "note": "This feature is intentionally a self-intersecting polygon so Exercise 2 has something to validate/fix."
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-104.99, 39.74],
+            [-104.97, 39.76],
+            [-104.99, 39.76],
+            [-104.97, 39.74],
+            [-104.99, 39.74]
+          ]
+        ]
+      }
+    }
+  ]
+}
