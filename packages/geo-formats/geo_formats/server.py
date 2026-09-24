@@ -41,7 +41,7 @@ from geo_formats.validate import validate_format as _validate_format
 __all__ = ["GeoFormatsServer", "INSTALL_COMMAND", "main"]
 
 #: The ``uvx`` command that installs this server (Requirements 2.6, 16.1).
-INSTALL_COMMAND = "uvx geo-formats"
+INSTALL_COMMAND = "uvx --from ./packages/geo-formats geo-formats"
 
 
 class GeoFormatsServer(BaseGeoServer):

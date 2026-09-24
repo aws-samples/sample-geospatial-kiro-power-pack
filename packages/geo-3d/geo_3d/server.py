@@ -33,7 +33,7 @@ from geo_3d.tiling import points_to_3d_tiles as _points_to_3d_tiles
 __all__ = ["Geo3DServer", "INSTALL_COMMAND", "main"]
 
 #: The ``uvx`` command that installs this server (Req 2.6; bundle-manifest).
-INSTALL_COMMAND = "uvx geo-3d"
+INSTALL_COMMAND = "uvx --from ./packages/geo-3d geo-3d"
 
 
 class Geo3DServer(BaseGeoServer):

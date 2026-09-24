@@ -52,7 +52,7 @@ def test_catalog_entries_register_geo_formats_as_open_provider() -> None:
         assert 1 <= len(entry.name) <= 100
         assert 1 <= len(entry.capability_description) <= 500
         # Not installed by default -> carries the install command (Req 2.6).
-        assert entry.install_command == INSTALL_COMMAND == "uvx geo-formats"
+        assert entry.install_command == INSTALL_COMMAND == "uvx --from ./packages/geo-formats geo-formats"
 
 
 def test_required_credentials_match_manifest() -> None:
@@ -77,4 +77,4 @@ def test_manifest_declares_pillar_b_expansion_with_matching_install() -> None:
     entry = _manifest_entry()
     assert entry["pillar"] == "B"
     assert entry["status"] == "Expansion"
-    assert entry["uvx"] == INSTALL_COMMAND == "uvx geo-formats"
+    assert entry["uvx"] == INSTALL_COMMAND == "uvx --from ./packages/geo-formats geo-formats"

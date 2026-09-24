@@ -168,7 +168,7 @@ def test_server_catalog_and_credentials() -> None:
         assert entry.provider_server == "geo-pointcloud"
         assert entry.openness_tier is OpennessTier.OPEN
         assert entry.pillar == "B"
-        assert entry.install_command == "uvx geo-pointcloud"
+        assert entry.install_command == "uvx --from ./packages/geo-pointcloud geo-pointcloud"
 
     # Optional AWS credentials only: starts with no configured credentials (Req 16.5).
     specs = server.required_credentials()

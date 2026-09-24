@@ -29,7 +29,7 @@ _MANIFEST_PATH = Path(__file__).resolve().parents[3] / "bundle-manifest.json"
 
 _OPEN_TIERS = {OpennessTier.OPEN, OpennessTier.FREE_TIER}
 
-_INSTALL_COMMAND = "uvx geo-index"
+_INSTALL_COMMAND = "uvx --from ./packages/geo-index geo-index"
 
 
 def _manifest_entry() -> Dict[str, Any]:

@@ -30,7 +30,7 @@ only the pixels needed, analyzes them, and reports full provenance.
 
 - Python 3.10 or higher.
 - The `geo-stac` and `geo-raster` servers installed and registered in
-  `mcp.json` (e.g. `uvx geo-stac`, `uvx geo-raster`), plus any analysis server
+  `mcp.json` (e.g. `uvx --from ./packages/geo-stac geo-stac`, `uvx --from ./packages/geo-raster geo-raster`), plus any analysis server
   used (`geo-foundation-models`). These provide `stac_search`, `read_window`,
   `band_math`, and the analysis tool.
 - No credentials required for the open Earth Search STAC catalog and public COG

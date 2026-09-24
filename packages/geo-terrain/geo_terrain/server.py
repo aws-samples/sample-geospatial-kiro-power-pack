@@ -42,7 +42,7 @@ __all__ = ["GeoTerrainServer", "INSTALL_COMMAND", "main"]
 
 #: The ``uvx`` command that installs this server (Requirements 2.6, 16.1). The
 #: Resource Catalog surfaces it on entries whose provider is not yet installed.
-INSTALL_COMMAND = "uvx geo-terrain"
+INSTALL_COMMAND = "uvx --from ./packages/geo-terrain geo-terrain"
 
 
 class GeoTerrainServer(BaseGeoServer):

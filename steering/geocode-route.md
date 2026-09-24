@@ -26,7 +26,7 @@ them, and emit the result as GeoJSON.
 
 - Python 3.10 or higher.
 - The `geo-geocode-route` server installed and registered in `mcp.json` (e.g.
-  `uvx geo-geocode-route`), which provides `geocode` and `route`.
+  `uvx --from ./packages/geo-geocode-route geo-geocode-route`), which provides `geocode` and `route`.
 - No credentials required for the open defaults (Nominatim, OSRM, Valhalla);
   configure a `source` credential only to select Amazon Location.
 - Familiarity with the supported routing profiles (car, bike, foot) and with

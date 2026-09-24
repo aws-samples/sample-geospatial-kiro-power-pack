@@ -76,8 +76,11 @@ check-schemas: ## Validate every tool's MCP inputSchema (well-formed + no dangli
 check-drift: ## Check bundle-manifest.json agrees with server code (servers, install cmds, credentials, catalog).
 	$(VPY) scripts/check_manifest_drift.py
 
+.PHONY: check-deps
+check-deps: ## Check no own package can resolve from public PyPI (geo-common pin + path-based install commands).
+	$(VPY) scripts/check_dependency_sources.py
 .PHONY: check
-check: check-schemas check-drift ## Run all static consistency checks (schemas + manifest drift).
+check: check-schemas check-drift check-deps ## Run all static consistency checks (schemas + manifest drift + dependency sources).
 
 .PHONY: new-server
 new-server: ## Scaffold a new server package: make new-server NAME=geo-foo PILLAR=A TOOL=do_thing

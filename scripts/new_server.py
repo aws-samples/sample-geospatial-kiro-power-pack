@@ -81,6 +81,11 @@ dev = ["pytest>=8.0,<9", "pytest-asyncio>=0.23,<1", "hypothesis>=6.100"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["{{MODULE}}"]
+
+# geo-common is not published on PyPI. Resolve it from this monorepo so uv never
+# falls back to the public index (dependency-confusion hardening).
+[tool.uv.sources]
+geo-common = { path = "../geo-common", editable = true }
 '''
 
 
@@ -128,7 +133,9 @@ from {{MODULE}}.models import {{TOOL_TITLE}}Result
 __all__ = ["{{CLASS}}", "INSTALL_COMMAND", "main"]
 
 #: The ``uvx`` command that installs this server (must equal the manifest ``uvx``).
-INSTALL_COMMAND = "uvx {{NAME}}"
+#: Path-based on purpose: this pack's packages are not on PyPI, so a bare
+#: ``uvx {{NAME}}`` would resolve the name from the public index.
+INSTALL_COMMAND = "uvx --from ./packages/{{NAME}} {{NAME}}"
 
 
 class {{CLASS}}(BaseGeoServer):
@@ -244,7 +251,7 @@ def test_starts_without_credentials() -> None:
 
 
 def test_install_command_constant() -> None:
-    assert INSTALL_COMMAND == "uvx {{NAME}}"
+    assert INSTALL_COMMAND == "uvx --from ./packages/{{NAME}} {{NAME}}"
 
 
 async def test_happy_path_returns_result() -> None:
@@ -315,9 +322,10 @@ def main() -> int:
     print(
         "\nScaffolded %s (class %s, tool %s).\n\nNext steps:\n"
         "  1. Add (\"%s.server\", \"%s\") to SERVERS in scripts/check_tool_schemas.py\n"
-        "  2. Add a 'servers' entry for '%s' to bundle-manifest.json (uvx '%s')\n"
+        "  2. Add a 'servers' entry for '%s' to bundle-manifest.json "
+        "(uvx 'uvx --from ./packages/%s %s')\n"
         "  3. Install it:   .venv/bin/python -m pip install -e ./packages/%s\n"
-        "  4. Run checks:   make check    (schemas + manifest drift)\n"
+        "  4. Run checks:   make check    (schemas + manifest drift + dependency sources)\n"
         "  5. Run tests:    PYTHONPATH=packages/geo-common:packages/%s "
         ".venv/bin/python -m pytest packages/%s -q\n"
         "  6. Replace the placeholder tool/model/catalog with the real capability "
@@ -325,7 +333,7 @@ def main() -> int:
         % (
             name, ctx["CLASS"], tool,
             module, ctx["CLASS"],
-            name, ctx["NAME"],
+            name, name, name,
             name,
             name, name,
         )

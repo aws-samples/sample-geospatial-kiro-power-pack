@@ -35,7 +35,7 @@ from geo_pointcloud.pointcloud import (
 __all__ = ["GeoPointcloudServer", "INSTALL_COMMAND", "main"]
 
 #: The ``uvx`` command that installs this server (Req 2.6, 16.1).
-INSTALL_COMMAND = "uvx geo-pointcloud"
+INSTALL_COMMAND = "uvx --from ./packages/geo-pointcloud geo-pointcloud"
 
 
 class GeoPointcloudServer(BaseGeoServer):

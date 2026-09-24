@@ -49,7 +49,7 @@ from geo_embedding_search.store import (
 __all__ = ["GeoEmbeddingSearchServer", "main"]
 
 #: ``uvx`` command that installs this server (Req 2.6, 6.2; bundle-manifest).
-INSTALL_COMMAND = "uvx geo-embedding-search"
+INSTALL_COMMAND = "uvx --from ./packages/geo-embedding-search geo-embedding-search"
 
 #: Optional OpenSearch connection keys (Req 16.1; bundle-manifest). The default
 #: local LanceDB-style store works without any of them, so each is

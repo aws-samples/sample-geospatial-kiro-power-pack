@@ -43,7 +43,7 @@ from geo_raster.zonal_band_math import zonal_band_math as _zonal_band_math
 __all__ = ["GeoRasterServer", "INSTALL_COMMAND", "main"]
 
 #: The ``uvx`` command that installs this server (Requirements 2.6, 16.1).
-INSTALL_COMMAND = "uvx geo-raster"
+INSTALL_COMMAND = "uvx --from ./packages/geo-raster geo-raster"
 
 
 class GeoRasterServer(BaseGeoServer):

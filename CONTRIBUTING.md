@@ -47,14 +47,17 @@ declaration, and a passing test trio. Then:
    ```
 2. **Add it to the manifest.** Add a `servers` entry to `bundle-manifest.json`
    (name, pillar, status, tier, `uvx`, `role`, `credentials`, `wraps`). The
-   `uvx` value must equal the server's `INSTALL_COMMAND`.
+   `uvx` value must equal the server's `INSTALL_COMMAND`, and both must be the
+   path-based form `uvx --from ./packages/geo-foo geo-foo` (never a bare
+   `uvx geo-foo`: these packages are not on PyPI, so a bare name would resolve
+   from the public index). `make check-deps` enforces this.
 3. **Install it** into the dev venv:
    ```bash
    .venv/bin/python -m pip install -e ./packages/geo-foo
    ```
 4. **Run the checks and tests:**
    ```bash
-   make check        # schema + manifest-drift checks
+   make check        # schema + manifest-drift + dependency-source checks
    PYTHONPATH=packages/geo-common:packages/geo-foo .venv/bin/python -m pytest packages/geo-foo -q
    ```
 5. **Replace the placeholder** tool/model/catalog with the real capability.
@@ -194,15 +197,25 @@ Run everything from the repo root (packages installed in the venv):
 
 ## Static consistency checks
 
-Run before opening a PR (`make check` runs both):
+Run before opening a PR (`make check` runs all three):
 
 - **`make check-schemas`** — every tool's generated MCP `inputSchema` is a valid
   JSON Schema with no dangling `$ref` (the bug class that broke `spatial_join`).
 - **`make check-drift`** — `bundle-manifest.json` and the server code agree:
   server set parity, `INSTALL_COMMAND` == manifest `uvx`, credential parity, and
   catalog integrity.
+- **`make check-deps`** — nothing in the pack can resolve one of its own
+  packages from public PyPI (none of them are published there, so a bare name
+  would let anyone who registers it on the public index run code on a
+  developer, CI, or agent host — dependency confusion). Two rules: every
+  package that depends on `geo-common` pins it to the in-repo path with
+  `[tool.uv.sources] geo-common = { path = "../geo-common", editable = true }`,
+  and every server's manifest `uvx` entry is the path-based
+  `uvx --from ./packages/<name> <name>` (the drift check keeps
+  `INSTALL_COMMAND` equal to it). The scaffolder emits both; keep them when
+  hand-writing a server.
 
-Both run with no network and no credentials.
+All run with no network and no credentials.
 
 ---
 

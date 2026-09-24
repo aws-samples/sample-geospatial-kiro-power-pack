@@ -47,7 +47,7 @@ __all__ = ["GeoGeocodeRouteServer", "INSTALL_COMMAND", "main"]
 
 #: The ``uvx`` command that installs this server (Requirements 2.6, 16.1). The
 #: Resource Catalog surfaces it on entries whose provider is not yet installed.
-INSTALL_COMMAND = "uvx geo-geocode-route"
+INSTALL_COMMAND = "uvx --from ./packages/geo-geocode-route geo-geocode-route"
 
 
 class GeoGeocodeRouteServer(BaseGeoServer):

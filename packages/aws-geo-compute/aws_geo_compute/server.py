@@ -63,7 +63,7 @@ from aws_geo_compute.jobs import (
 __all__ = ["AwsGeoComputeServer", "INSTALL_COMMAND", "main"]
 
 #: ``uvx`` command that installs this peer Power (bundle-manifest).
-INSTALL_COMMAND = "uvx aws-geo-compute"
+INSTALL_COMMAND = "uvx --from ./packages/aws-geo-compute aws-geo-compute"
 
 #: The standard AWS ``mcp.json`` keys the peer Power reads to submit jobs and
 #: read/write S3 outputs. Declared **Optional** so they never block startup

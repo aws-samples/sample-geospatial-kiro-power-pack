@@ -382,6 +382,15 @@ uv pip install -e ./packages/geo-warehouse
 Each install pulls in `geo-common` and nothing else, so you install only what
 you need.
 
+> **Where `geo-common` comes from.** `geo-common` is **not published on PyPI**;
+> it lives only in this repository. Every server's `pyproject.toml` pins it to
+> the in-repo path via `[tool.uv.sources]`, so `uv pip install`, `uv tool
+> install`, and `uvx --from ./packages/<server> <server>` resolve it locally and
+> never consult the public index (this closes a dependency-confusion vector).
+> Plain `pip` ignores `tool.uv.sources`, so if you use `pip` instead of `uv`
+> always install `./packages/geo-common` first (as above) so `pip` never goes
+> looking for `geo-common` on PyPI. `make check` enforces the pin.
+
 ---
 
 ## Configure the Power in Kiro

@@ -71,7 +71,7 @@ from geo_foundation_models.models import (
 __all__ = ["GeoFoundationModelsServer", "main"]
 
 #: ``uvx`` command that installs this server (Req 2.6, 6.2; bundle-manifest).
-INSTALL_COMMAND = "uvx geo-foundation-models"
+INSTALL_COMMAND = "uvx --from ./packages/geo-foundation-models geo-foundation-models"
 
 #: Optional Hugging Face token for gated model weights; openly licensed models
 #: load without it, so the credential never blocks startup (Req 16.5).
