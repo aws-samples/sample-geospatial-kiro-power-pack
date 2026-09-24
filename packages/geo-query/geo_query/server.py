@@ -37,7 +37,7 @@ from geo_query.models import ResultSet
 __all__ = ["GeoQueryServer", "INSTALL_COMMAND", "main"]
 
 #: ``uvx`` command that installs this server (Req 2.6; bundle-manifest).
-INSTALL_COMMAND = "uvx geo-query"
+INSTALL_COMMAND = "uvx --from ./packages/geo-query geo-query"
 
 
 class GeoQueryServer(BaseGeoServer):

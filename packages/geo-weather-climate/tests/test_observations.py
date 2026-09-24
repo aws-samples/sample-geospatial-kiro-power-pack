@@ -284,7 +284,7 @@ def test_required_credentials_match_manifest() -> None:
     spec_pairs = {(s.mcp_json_key, s.classification.value) for s in specs}
     manifest_pairs = {(c["key"], c["classification"]) for c in entry["credentials"]}
     assert spec_pairs == manifest_pairs
-    assert entry["uvx"] == INSTALL_COMMAND == "uvx geo-weather-climate"
+    assert entry["uvx"] == INSTALL_COMMAND == "uvx --from ./packages/geo-weather-climate geo-weather-climate"
 
 
 async def test_authentication_failure_yields_authentication_error() -> None:

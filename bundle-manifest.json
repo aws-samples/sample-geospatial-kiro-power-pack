@@ -65,7 +65,7 @@
       "status": "MVP",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx kiro-geospatial",
+      "uvx": "uvx --from ./packages/kiro-geospatial kiro-geospatial",
       "role": "Power Hub: Onboarding Dashboard, Resource Catalog, Credential Manager (single mcp.json surface), Orchestration Router.",
       "credentials": [],
       "wraps": []
@@ -87,7 +87,7 @@
       "status": "MVP",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-stac",
+      "uvx": "uvx --from ./packages/geo-stac geo-stac",
       "role": "STAC catalog search and asset discovery across Earth Search (Element84), MS Planetary Computer, NASA CMR-STAC, Copernicus Data Space, USGS.",
       "credentials": [
         {
@@ -111,7 +111,7 @@
       "status": "MVP",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-vector",
+      "uvx": "uvx --from ./packages/geo-vector geo-vector",
       "role": "Vector features for a spatial extent from OpenStreetMap (Overpass) by default; Overture Maps is supported as an optional, explicitly configured GeoJSON endpoint (Overture has no public REST API - its data is cloud-native GeoParquet queried via DuckDB).",
       "credentials": [],
       "wraps": []
@@ -122,7 +122,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open / Free-Tier",
-      "uvx": "uvx geo-geocode-route",
+      "uvx": "uvx --from ./packages/geo-geocode-route geo-geocode-route",
       "role": "Address-to-coordinate geocoding and reverse geocoding (Nominatim, Photon), routing (OSRM, Valhalla), and isochrones (Valhalla); Amazon Location is a credentialed geocoder selectable via source=amazon-location.",
       "credentials": [
         {
@@ -140,7 +140,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-terrain",
+      "uvx": "uvx --from ./packages/geo-terrain geo-terrain",
       "role": "Elevation, slope, aspect, and hillshade from SRTM (default) and USGS 3DEP via the public OpenTopoData endpoint (endpoint/dataset overridable); plus dem_zonal for per-zone elevation/slope/aspect statistics over a user-supplied DEM COG via byte-range reads.",
       "credentials": [
         {
@@ -158,7 +158,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open / Free-Tier",
-      "uvx": "uvx geo-weather-climate",
+      "uvx": "uvx --from ./packages/geo-weather-climate geo-weather-climate",
       "role": "Weather, climate, and air-quality observations from Open-Meteo weather (default) and Open-Meteo air-quality (source=air-quality: PM2.5/PM10/CO/NO2/SO2/O3), and NOAA/NWS (US); NOAA Climate Data Online when configured. ERA5 reanalysis is covered via the Open-Meteo archive (ERA5-derived), not a direct Copernicus CDS client.",
       "credentials": [
         {
@@ -176,7 +176,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-biodiversity",
+      "uvx": "uvx --from ./packages/geo-biodiversity geo-biodiversity",
       "role": "Species occurrence records from GBIF, iNaturalist, IUCN.",
       "credentials": [
         {
@@ -200,7 +200,7 @@
       "status": "MVP",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-ops",
+      "uvx": "uvx --from ./packages/geo-ops geo-ops",
       "role": "CRS transforms, geometry validation/operations, spatial joins, overlay, buffer and convex hull via PyProj, Shapely/GEOS, GeoPandas. Local, pure-function logic.",
       "credentials": [],
       "wraps": []
@@ -211,7 +211,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-formats",
+      "uvx": "uvx --from ./packages/geo-formats geo-formats",
       "role": "COG / GeoParquet / Zarr / COPC conversion and validation via GDAL, rio-cogeo.",
       "credentials": [
         {
@@ -235,7 +235,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-query",
+      "uvx": "uvx --from ./packages/geo-query geo-query",
       "role": "Spatial SQL over data in place via DuckDB Spatial (open, geo-query[duckdb]) and Amazon Athena (geo-query[athena], wired when AWS_ACCESS_KEY_ID is set). Both ship as concrete engines.",
       "credentials": [
         {
@@ -265,7 +265,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-raster",
+      "uvx": "uvx --from ./packages/geo-raster geo-raster",
       "role": "Windowed Cloud-Optimized GeoTIFF reads, band math (NDVI/NDWI/NBR), zonal statistics over rasters, and zonal band math (per-pixel index across separate single-band COGs reduced to per-zone stats) via S3/HTTP byte-range reads (pure-Python COG reader; optional numpy accelerator for zonal statistics via the 'fast' extra).",
       "credentials": [
         {
@@ -289,7 +289,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-pointcloud",
+      "uvx": "uvx --from ./packages/geo-pointcloud geo-pointcloud",
       "role": "Read/write point clouds. Real Cloud-Optimized Point Cloud/LAZ read (octree-windowed) via laspy+lazrs (geo-pointcloud[copc], light, no native GDAL/PDAL); standards-compliant COPC write via PDAL (geo-pointcloud[pdal]); remote s3/https reads via geo-pointcloud[remote]. Falls back to a portable, lossless local container (not interoperable COPC) when no extra is installed.",
       "credentials": [
         {
@@ -313,7 +313,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-index",
+      "uvx": "uvx --from ./packages/geo-index geo-index",
       "role": "H3 (resolutions 0-15) and S2 (levels 0-30) spatial indexing via h3 and s2geometry. Local, pure-function logic.",
       "credentials": [],
       "wraps": []
@@ -324,7 +324,7 @@
       "status": "MVP",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-foundation-models",
+      "uvx": "uvx --from ./packages/geo-foundation-models geo-foundation-models",
       "role": "Geospatial foundation-model embeddings, segmentation, and change detection via Clay, Prithvi-EO-2.0, SatCLIP, SAMGeo (deterministic local stand-in backends by default, pluggable for real weights either in-process via a local embedding callable — LocalCallableBackend, GEO_FM_EMBED_LOCAL_CALLABLE — or via a remote inference endpoint — RemoteEndpointBackend over generic HTTPS or AWS SageMaker); server-side read-then-embed of COG windows (embed_asset, detect_change_from_assets) and a per-tile change_map grid over an AOI; retrieval of real published Clay v1.5 Sentinel-2 vectors and their available periods.",
       "credentials": [
         {
@@ -348,7 +348,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-embedding-search",
+      "uvx": "uvx --from ./packages/geo-embedding-search geo-embedding-search",
       "role": "Store embeddings and run semantic/similarity search. Zero-config in-memory store by default; a local durable LanceDB store (geo-embedding-search[lancedb], set LANCEDB_URI); or a managed/hosted OpenSearch, e.g. Amazon OpenSearch Service (geo-embedding-search[opensearch], set OPENSEARCH_URL) - the OpenSearch engine runs as a managed service, never locally.",
       "credentials": [
         {
@@ -378,7 +378,7 @@
       "status": "Expansion",
       "firstExpansion": true,
       "tier": "Proprietary/Licensed",
-      "uvx": "uvx geo-warehouse",
+      "uvx": "uvx --from ./packages/geo-warehouse geo-warehouse",
       "role": "Spatial SQL at warehouse scale against BigQuery, Snowflake, Redshift, and Databricks. All four ship as concrete engines (geo-warehouse[bigquery|redshift|snowflake|databricks], each wired when its *_CONNECTION/credential is set). Connection secrets live in the *_CONNECTION env (a JSON object or a path to a JSON file); the per-call connection argument is the non-secret database/schema. Processing/compute-class (counts toward Pillar B). First expansion module.",
       "credentials": [
         {
@@ -418,7 +418,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Proprietary/Licensed",
-      "uvx": "uvx geo-commercial-imagery",
+      "uvx": "uvx --from ./packages/geo-commercial-imagery geo-commercial-imagery",
       "role": "Commercial imagery discovery and ordering, routed by provider: Maxar WorldView via the Sentinel Hub Third-Party Data Import (TPDI) API, and Planet (PlanetScope/SkySat) via Planet's own Data + Orders APIs. Sentinel Hub TPDI is being sunset for Planet data and no longer offers Airbus, so Planet uses its first-party APIs and Maxar stays on TPDI. Maxar orders are create-only by default; Planet orders are placed on confirm.",
       "credentials": [
         {
@@ -451,7 +451,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open (AWS account)",
-      "uvx": "uvx aws-geo-compute",
+      "uvx": "uvx --from ./packages/aws-geo-compute aws-geo-compute",
       "role": "Peer Power for heavy/distributed compute: deterministic task-type to execution-target mapping over AWS Batch, Amazon ECS with AWS Fargate, Amazon EMR with Apache Sedona, and Amazon SageMaker AI. Ships a concrete AWS Batch backend (aws-geo-compute[aws]) covering the Batch and Fargate targets, wired when AWS_ACCESS_KEY_ID is set and AWS_BATCH_JOB_QUEUE/AWS_BATCH_JOB_DEFINITION are configured; Amazon EMR and Amazon SageMaker AI remain bring-your-own-backend. Engine selection and planning always run offline.",
       "credentials": [
         {
@@ -481,7 +481,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-ogc",
+      "uvx": "uvx --from ./packages/geo-ogc geo-ogc",
       "role": "Fetch GeoJSON features for a spatial extent from any OGC API - Features service (pygeoapi, GeoServer OGC API, ldproxy) by endpoint + collection id.",
       "credentials": [],
       "wraps": []
@@ -492,7 +492,7 @@
       "status": "Expansion",
       "firstExpansion": false,
       "tier": "Open",
-      "uvx": "uvx geo-3d",
+      "uvx": "uvx --from ./packages/geo-3d geo-3d",
       "role": "3D geospatial formats: inspect/validate OGC 3D Tiles tilesets and glTF/GLB assets, tile point clouds into 3D Tiles (.pnts), and mesh DEM grids into glTF/GLB terrain. Local, dependency-free.",
       "credentials": [],
       "wraps": []

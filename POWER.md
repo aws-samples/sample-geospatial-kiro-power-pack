@@ -58,27 +58,34 @@ By count, Pillar B (processing/compute) is never smaller than Pillar A
 Each server is a standalone package installed independently via `uvx`.
 Installing a server installs it plus `geo-common` and nothing else.
 
+These packages are **not published on PyPI**; they are installed from a clone
+of this repository. Run the install commands below from the repository root:
+`uvx --from ./packages/<server> <server>` resolves the server (and its
+`geo-common` dependency, pinned to `./packages/geo-common`) from the local
+checkout and never from the public index. Do not use a bare `uvx <server>`;
+it would resolve the name from PyPI, where anyone could register it.
+
 | Server | Pillar | Status | Openness tier | Install |
 |---|---|---|---|---|
-| `kiro-geospatial` | Hub | MVP | Open | `uvx kiro-geospatial` |
+| `kiro-geospatial` | Hub | MVP | Open | `uvx --from ./packages/kiro-geospatial kiro-geospatial` |
 | `geo-common` | Shared base | MVP | Open | (installed as a dependency) |
-| `geo-stac` | A | MVP | Open | `uvx geo-stac` |
-| `geo-vector` | A | MVP | Open | `uvx geo-vector` |
-| `geo-geocode-route` | A | Expansion | Open / Free-Tier | `uvx geo-geocode-route` |
-| `geo-terrain` | A | Expansion | Open | `uvx geo-terrain` |
-| `geo-weather-climate` | A | Expansion | Open / Free-Tier | `uvx geo-weather-climate` |
-| `geo-biodiversity` | A | Expansion | Open | `uvx geo-biodiversity` |
-| `geo-ops` | B | MVP | Open | `uvx geo-ops` |
-| `geo-formats` | B | Expansion | Open | `uvx geo-formats` |
-| `geo-query` | B | Expansion | Open | `uvx geo-query` |
-| `geo-raster` | B | Expansion | Open | `uvx geo-raster` |
-| `geo-pointcloud` | B | Expansion | Open | `uvx geo-pointcloud` |
-| `geo-index` | B | Expansion | Open | `uvx geo-index` |
-| `geo-foundation-models` | C | MVP | Open | `uvx geo-foundation-models` |
-| `geo-embedding-search` | C | Expansion | Open | `uvx geo-embedding-search` |
-| `geo-warehouse` | Credentialed (Pillar B-class) | First expansion | Proprietary/Licensed | `uvx geo-warehouse` |
-| `geo-commercial-imagery` | Credentialed | Expansion | Proprietary/Licensed | `uvx geo-commercial-imagery` |
-| `aws-geo-compute` | Peer Power | Expansion | Open (AWS account) | `uvx aws-geo-compute` |
+| `geo-stac` | A | MVP | Open | `uvx --from ./packages/geo-stac geo-stac` |
+| `geo-vector` | A | MVP | Open | `uvx --from ./packages/geo-vector geo-vector` |
+| `geo-geocode-route` | A | Expansion | Open / Free-Tier | `uvx --from ./packages/geo-geocode-route geo-geocode-route` |
+| `geo-terrain` | A | Expansion | Open | `uvx --from ./packages/geo-terrain geo-terrain` |
+| `geo-weather-climate` | A | Expansion | Open / Free-Tier | `uvx --from ./packages/geo-weather-climate geo-weather-climate` |
+| `geo-biodiversity` | A | Expansion | Open | `uvx --from ./packages/geo-biodiversity geo-biodiversity` |
+| `geo-ops` | B | MVP | Open | `uvx --from ./packages/geo-ops geo-ops` |
+| `geo-formats` | B | Expansion | Open | `uvx --from ./packages/geo-formats geo-formats` |
+| `geo-query` | B | Expansion | Open | `uvx --from ./packages/geo-query geo-query` |
+| `geo-raster` | B | Expansion | Open | `uvx --from ./packages/geo-raster geo-raster` |
+| `geo-pointcloud` | B | Expansion | Open | `uvx --from ./packages/geo-pointcloud geo-pointcloud` |
+| `geo-index` | B | Expansion | Open | `uvx --from ./packages/geo-index geo-index` |
+| `geo-foundation-models` | C | MVP | Open | `uvx --from ./packages/geo-foundation-models geo-foundation-models` |
+| `geo-embedding-search` | C | Expansion | Open | `uvx --from ./packages/geo-embedding-search geo-embedding-search` |
+| `geo-warehouse` | Credentialed (Pillar B-class) | First expansion | Proprietary/Licensed | `uvx --from ./packages/geo-warehouse geo-warehouse` |
+| `geo-commercial-imagery` | Credentialed | Expansion | Proprietary/Licensed | `uvx --from ./packages/geo-commercial-imagery geo-commercial-imagery` |
+| `aws-geo-compute` | Peer Power | Expansion | Open (AWS account) | `uvx --from ./packages/aws-geo-compute aws-geo-compute` |
 
 ### MVP set
 

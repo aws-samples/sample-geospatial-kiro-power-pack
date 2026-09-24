@@ -50,7 +50,7 @@ def test_catalog_entries_register_geo_pointcloud_as_open_provider() -> None:
         assert entry.openness_tier in _OPEN_TIERS
         assert 1 <= len(entry.name) <= 100
         assert 1 <= len(entry.capability_description) <= 500
-        assert entry.install_command == INSTALL_COMMAND == "uvx geo-pointcloud"
+        assert entry.install_command == INSTALL_COMMAND == "uvx --from ./packages/geo-pointcloud geo-pointcloud"
 
 
 def test_required_credentials_match_manifest() -> None:
@@ -75,4 +75,4 @@ def test_manifest_declares_pillar_b_expansion_with_matching_install() -> None:
     entry = _manifest_entry()
     assert entry["pillar"] == "B"
     assert entry["status"] == "Expansion"
-    assert entry["uvx"] == INSTALL_COMMAND == "uvx geo-pointcloud"
+    assert entry["uvx"] == INSTALL_COMMAND == "uvx --from ./packages/geo-pointcloud geo-pointcloud"

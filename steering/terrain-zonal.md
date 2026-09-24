@@ -28,7 +28,7 @@ Cloud-Optimized DEM directly over byte ranges — the terrain analogue of
 
 - Python 3.10 or higher.
 - The `geo-terrain`, `geo-ops`, and `geo-formats` servers installed and
-  registered in `mcp.json` (e.g. `uvx geo-terrain`).
+  registered in `mcp.json` (e.g. `uvx --from ./packages/geo-terrain geo-terrain`).
 - A DEM COG href (e.g. a Copernicus GLO-30 or USGS 3DEP tile) and vector zones.
 - Familiarity with coordinate reference systems and CRS alignment.
 

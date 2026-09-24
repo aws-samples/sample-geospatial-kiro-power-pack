@@ -28,7 +28,7 @@ from geo_ogc.models import FeatureCollectionResult
 __all__ = ["GeoOgcServer", "INSTALL_COMMAND", "main"]
 
 #: The ``uvx`` command that installs this server (Req 2.6; bundle-manifest).
-INSTALL_COMMAND = "uvx geo-ogc"
+INSTALL_COMMAND = "uvx --from ./packages/geo-ogc geo-ogc"
 
 
 class GeoOgcServer(BaseGeoServer):

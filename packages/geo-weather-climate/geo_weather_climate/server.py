@@ -34,7 +34,7 @@ __all__ = ["GeoWeatherClimateServer", "INSTALL_COMMAND", "main"]
 
 #: The ``uvx`` command that installs this server (Requirements 2.6, 16.1). The
 #: Resource Catalog surfaces it on entries whose provider is not yet installed.
-INSTALL_COMMAND = "uvx geo-weather-climate"
+INSTALL_COMMAND = "uvx --from ./packages/geo-weather-climate geo-weather-climate"
 
 
 class GeoWeatherClimateServer(BaseGeoServer):

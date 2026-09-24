@@ -50,7 +50,7 @@ __all__ = [
 ]
 
 #: The ``uvx`` command that installs this server (Requirements 2.6, 16.1).
-INSTALL_COMMAND = "uvx geo-commercial-imagery"
+INSTALL_COMMAND = "uvx --from ./packages/geo-commercial-imagery geo-commercial-imagery"
 
 #: The providers this server routes, and the backend each uses.
 SUPPORTED_PROVIDERS = ("MAXAR", "PLANET")

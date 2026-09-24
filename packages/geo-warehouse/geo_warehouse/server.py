@@ -39,7 +39,7 @@ from geo_warehouse.models import ResultSet
 __all__ = ["GeoWarehouseServer", "INSTALL_COMMAND", "main"]
 
 #: ``uvx`` command that installs this server (Req 2.6, 16.8; bundle-manifest).
-INSTALL_COMMAND = "uvx geo-warehouse"
+INSTALL_COMMAND = "uvx --from ./packages/geo-warehouse geo-warehouse"
 
 
 class GeoWarehouseServer(BaseGeoServer):

@@ -51,7 +51,7 @@ def test_catalog_entries_register_geo_query_per_engine() -> None:
         assert 1 <= len(entry.name) <= 100
         assert 1 <= len(entry.capability_description) <= 500
         # No engine is configured on a default server -> install command shown.
-        assert entry.install_command == INSTALL_COMMAND == "uvx geo-query"
+        assert entry.install_command == INSTALL_COMMAND == "uvx --from ./packages/geo-query geo-query"
     assert entries["spatial_sql:duckdb"].openness_tier is OpennessTier.OPEN
     assert entries["spatial_sql:athena"].openness_tier is OpennessTier.FREE_TIER
 
@@ -78,4 +78,4 @@ def test_manifest_declares_pillar_b_expansion_with_matching_install() -> None:
     entry = _manifest_entry()
     assert entry["pillar"] == "B"
     assert entry["status"] == "Expansion"
-    assert entry["uvx"] == INSTALL_COMMAND == "uvx geo-query"
+    assert entry["uvx"] == INSTALL_COMMAND == "uvx --from ./packages/geo-query geo-query"

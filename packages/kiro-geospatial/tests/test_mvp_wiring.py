@@ -75,7 +75,7 @@ class FakeStac(BaseGeoServer):
                 provider_server=self.server_name,
                 # Not-installed defaults: the Hub should normalize these.
                 installed=False,
-                install_command="uvx geo-stac",
+                install_command="uvx --from ./packages/geo-stac geo-stac",
             )
         ]
 

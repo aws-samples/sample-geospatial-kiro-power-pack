@@ -26,7 +26,7 @@ conversion is loss-free, and promote the result to a cloud-optimized location.
 
 - Python 3.10 or higher.
 - The `geo-formats` server installed and registered in `mcp.json` (e.g.
-  `uvx geo-formats`, or `uv pip install -e ./packages/geo-formats`), which
+  `uvx --from ./packages/geo-formats geo-formats`, or `uv pip install -e ./packages/geo-formats`), which
   provides `to_cog` and `validate_format`.
 - Familiarity with raster data formats (GeoTIFF/COG) and nodata handling.
 - Optional: AWS credentials in `mcp.json` only if reading from or writing the

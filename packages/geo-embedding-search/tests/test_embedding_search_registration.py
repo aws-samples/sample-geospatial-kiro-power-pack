@@ -107,4 +107,4 @@ def test_required_credentials_match_manifest() -> None:
 
 def test_manifest_install_command_matches_server() -> None:
     """Req 2.6: the manifest ``uvx`` command matches the server constant."""
-    assert _manifest_entry()["uvx"] == INSTALL_COMMAND == "uvx geo-embedding-search"
+    assert _manifest_entry()["uvx"] == INSTALL_COMMAND == "uvx --from ./packages/geo-embedding-search geo-embedding-search"

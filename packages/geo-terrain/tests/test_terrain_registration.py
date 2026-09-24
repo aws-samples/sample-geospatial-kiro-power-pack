@@ -74,7 +74,7 @@ def test_catalog_entry_registers_geo_terrain_as_open_provider() -> None:
         assert entry.pillar == "A"
         assert entry.provider_server == "geo-terrain"
         assert entry.openness_tier in _OPEN_TIERS
-        assert entry.install_command == INSTALL_COMMAND == "uvx geo-terrain"
+        assert entry.install_command == INSTALL_COMMAND == "uvx --from ./packages/geo-terrain geo-terrain"
         assert 1 <= len(entry.capability_description) <= 500
 
 
@@ -97,7 +97,7 @@ def test_required_credentials_match_manifest() -> None:
 
 
 def test_manifest_install_command_matches_server() -> None:
-    assert _manifest_entry()["uvx"] == INSTALL_COMMAND == "uvx geo-terrain"
+    assert _manifest_entry()["uvx"] == INSTALL_COMMAND == "uvx --from ./packages/geo-terrain geo-terrain"
 
 
 # --- Req 7.11: unreachable source -> availability error, no partial data ----

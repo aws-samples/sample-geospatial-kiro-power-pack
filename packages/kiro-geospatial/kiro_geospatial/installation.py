@@ -54,6 +54,9 @@ from geo_common.errors import NotFoundError, UpstreamError, ValidationError
 __all__ = [
     "GEO_COMMON",
     "HUB_DEFAULT_NAME",
+    "PACKAGES_DIR_ENV",
+    "install_command",
+    "resolve_packages_dir",
     "UvxCommandError",
     "UvxRunner",
     "SubprocessUvxRunner",
@@ -73,6 +76,37 @@ GEO_COMMON = "geo-common"
 #: excluded from the installable MVP module set (Requirement 16.2 lists the
 #: five servers, not the hub).
 HUB_DEFAULT_NAME = "kiro-geospatial"
+
+#: Environment variable naming the monorepo ``packages/`` directory the Hub
+#: installs servers from. When unset, ``<cwd>/packages`` is used.
+PACKAGES_DIR_ENV = "KIRO_GEOSPATIAL_PACKAGES_DIR"
+
+
+def install_command(name: str) -> str:
+    """Return the documented ``uvx`` command that installs the pack's ``name`` server.
+
+    None of this pack's packages are published on PyPI, so the install
+    contract is **path-based**: ``uvx --from ./packages/<name> <name>`` run from
+    the repository root. A bare ``uvx <name>`` would resolve ``<name>`` from
+    the public index, letting whoever registers that name there run code on
+    the host (dependency confusion). Every server's ``INSTALL_COMMAND`` and the
+    manifest ``uvx`` field must equal this string for its name.
+    """
+    return "uvx --from ./packages/%s %s" % (name, name)
+
+
+def resolve_packages_dir(packages_dir: "Optional[Union[str, Path]]" = None) -> Path:
+    """Locate the monorepo ``packages/`` directory servers are installed from.
+
+    Precedence: the explicit ``packages_dir`` argument, then the
+    :data:`PACKAGES_DIR_ENV` environment variable, then ``<cwd>/packages``.
+    """
+    if packages_dir is not None:
+        return Path(packages_dir)
+    from_env = os.environ.get(PACKAGES_DIR_ENV)
+    if from_env:
+        return Path(from_env)
+    return Path.cwd() / "packages"
 
 
 # ---------------------------------------------------------------------------
@@ -140,6 +174,14 @@ class SubprocessUvxRunner(UvxRunner):
     Uses ``uv tool install`` / ``uv tool uninstall`` / ``uv tool list`` with
     argument lists (never a shell string) so package names cannot be used for
     command injection. Each call is bounded by ``timeout`` seconds.
+
+    **Installs are path-based.** This pack's packages are not on PyPI, so
+    :meth:`install` runs ``uv tool install <packages_dir>/<name>`` and refuses
+    to install a package whose source directory is absent rather than falling
+    back to ``uv tool install <name>``, which would resolve the bare name from
+    the public index (dependency confusion). ``packages_dir`` is resolved by
+    :func:`resolve_packages_dir`. Uninstall and list still address tools by
+    name, which is how ``uv tool`` reports a path-installed tool.
     """
 
     #: ``uv tool list`` prints one tool per line as ``name vX.Y.Z`` followed by
@@ -147,9 +189,43 @@ class SubprocessUvxRunner(UvxRunner):
     #: leading ``name version`` portion of a tool line.
     _LIST_LINE = re.compile(r"^(?P<name>\S+)\s+v?(?P<version>\S+)")
 
-    def __init__(self, *, uv_bin: str = "uv", timeout: float = 300.0) -> None:
+    def __init__(
+        self,
+        *,
+        uv_bin: str = "uv",
+        timeout: float = 300.0,
+        packages_dir: "Optional[Union[str, Path]]" = None,
+    ) -> None:
         self._base: List[str] = [uv_bin, "tool"]
         self._timeout = timeout
+        self._packages_dir = resolve_packages_dir(packages_dir)
+
+    @property
+    def packages_dir(self) -> Path:
+        """The monorepo ``packages/`` directory servers are installed from."""
+        return self._packages_dir
+
+    def _source_path(self, package: str) -> Path:
+        """Return the in-repo source directory for ``package`` or raise.
+
+        Rejects names that are not a single path component so a crafted name
+        cannot escape ``packages_dir``, and rejects a missing project so the
+        install never degrades to a public-index lookup.
+        """
+        if not package or Path(package).name != package or package in {".", ".."}:
+            raise UvxCommandError(
+                package, "invalid package name %r" % package
+            )
+        source = self._packages_dir / package
+        if not (source / "pyproject.toml").is_file():
+            raise UvxCommandError(
+                package,
+                "no local source for %s at %s; this pack's packages are not on "
+                "PyPI and are only installed from the repository checkout (set "
+                "%s to its packages/ directory)"
+                % (package, source, PACKAGES_DIR_ENV),
+            )
+        return source
 
     def _run(self, args: "Sequence[str]") -> "subprocess.CompletedProcess[str]":
         try:
@@ -174,11 +250,12 @@ class SubprocessUvxRunner(UvxRunner):
             ) from exc
 
     def install(self, package: str) -> str:
-        proc = self._run(["install", package])
+        source = self._source_path(package)
+        proc = self._run(["install", str(source)])
         if proc.returncode != 0:
             raise UvxCommandError(
                 package,
-                "uv tool install %s failed" % package,
+                "uv tool install %s failed" % source,
                 detail=_clean(proc.stderr or proc.stdout),
             )
         return self.installed_version(package) or "unknown"

@@ -78,7 +78,7 @@ def _servers(fm_credentials: List[CredentialSpec]) -> Dict[str, DashboardServerS
             name="geo-stac",
             pillar="Pillar A",
             openness_tier=OpennessTier.OPEN,
-            uvx_command="uvx geo-stac",
+            uvx_command="uvx --from ./packages/geo-stac geo-stac",
             credentials=[],
             is_mvp=True,
         ),
@@ -86,7 +86,7 @@ def _servers(fm_credentials: List[CredentialSpec]) -> Dict[str, DashboardServerS
             name="geo-foundation-models",
             pillar="Pillar C",
             openness_tier=OpennessTier.PROPRIETARY,
-            uvx_command="uvx geo-foundation-models",
+            uvx_command="uvx --from ./packages/geo-foundation-models geo-foundation-models",
             credentials=fm_credentials,
             is_mvp=True,
         ),
@@ -107,8 +107,8 @@ _GEO_STAC_AVAILABLE = {
 
 # Getting-started guidance: one item per MVP module with a uvx command (Req 1.4).
 _GETTING_STARTED = [
-    {"server_name": "geo-stac", "uvx_command": "uvx geo-stac"},
-    {"server_name": "geo-foundation-models", "uvx_command": "uvx geo-foundation-models"},
+    {"server_name": "geo-stac", "uvx_command": "uvx --from ./packages/geo-stac geo-stac"},
+    {"server_name": "geo-foundation-models", "uvx_command": "uvx --from ./packages/geo-foundation-models geo-foundation-models"},
 ]
 
 

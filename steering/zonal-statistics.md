@@ -28,8 +28,8 @@ per zone and a no-data indication for zones that do not overlap the raster.
 
 - Python 3.10 or higher.
 - The `geo-raster`, `geo-ops`, and `geo-formats` servers installed and
-  registered in `mcp.json` (e.g. `uvx geo-raster`, `uvx geo-ops`,
-  `uvx geo-formats`), providing `zonal_statistics`, `transform_crs`, and
+  registered in `mcp.json` (e.g. `uvx --from ./packages/geo-raster geo-raster`, `uvx --from ./packages/geo-ops geo-ops`,
+  `uvx --from ./packages/geo-formats geo-formats`), providing `zonal_statistics`, `transform_crs`, and
   `to_geoparquet`.
 - Familiarity with coordinate reference systems and CRS alignment.
 - Input data: a raster (GeoTIFF/COG) and vector zones (GeoJSON/GeoParquet) for

@@ -35,7 +35,7 @@ comparing geospatial foundation-model embeddings.
 
 - Python 3.10 or higher.
 - The `geo-foundation-models` server installed and registered in `mcp.json`
-  (e.g. `uvx geo-foundation-models`), providing `embed_tile` and
+  (e.g. `uvx --from ./packages/geo-foundation-models geo-foundation-models`), providing `embed_tile` and
   `detect_change`.
 - Available models (Clay, Prithvi-EO-2.0, SatCLIP) and how to select exactly
   one per request; the on-tile path uses a deterministic local stand-in unless
