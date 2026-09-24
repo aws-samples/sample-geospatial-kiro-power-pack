@@ -41,3 +41,7 @@ geo-raster = "geo_raster.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["geo_raster"]
+# geo-common is not published on PyPI. Resolve it from this monorepo so uv never
+# falls back to the public index (dependency-confusion hardening).
+[tool.uv.sources]
+geo-common = { path = "../geo-common", editable = true }

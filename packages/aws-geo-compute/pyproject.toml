@@ -37,3 +37,7 @@ aws-geo-compute = "aws_geo_compute.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["aws_geo_compute"]
+# geo-common is not published on PyPI. Resolve it from this monorepo so uv never
+# falls back to the public index (dependency-confusion hardening).
+[tool.uv.sources]
+geo-common = { path = "../geo-common", editable = true }
