@@ -238,44 +238,43 @@ Wherobots, and Felt are members of the AWS Partner Network.
 
 #### Esri
 
-Esri offers two hosted MCP servers (both public beta):
+Esri offers two hosted MCP servers:
 
-- **ArcGIS Enterprise MCP — public beta** — Esri's MCP server over your ArcGIS
+- **ArcGIS Enterprise MCP** — Esri's MCP server over your ArcGIS
   Enterprise content: item/layer search and describe, attribute and spatial
-  `query_data`, map-image export, and geocoding. **This is a beta — not GA; the
-  API and endpoints may change without notice, and it is not for production
-  use.** Commercial; requires an ArcGIS Enterprise deployment and an API key.
-  It is a remote HTTP endpoint; because Kiro launches MCP servers as local
-  stdio child processes, bridge to it with the `mcp-remote` npx proxy and pass
-  the key as a header (keeps the secret out of the URL):
+  `query_data`, map-image export, and geocoding. Commercial; requires an
+  ArcGIS Enterprise deployment and an API key. It is a remote HTTP endpoint;
+  because Kiro launches MCP servers as local stdio child processes, bridge
+  to it with the `mcp-remote` npx proxy and pass the key as a header
+  (keeps the secret out of the URL):
   ```json
   "arcgis-enterprise": {
     "command": "npx",
     "args": [
       "-y", "mcp-remote",
-      "https://<host>/<context>/platform/mcp",
+      "https://<domain>/<server-context>/mcp/default",
       "--header", "Authorization: Bearer <API_KEY>"
     ]
   }
   ```
-  See the [ArcGIS Enterprise MCP beta docs](https://mcpbeta.webgistesting.net/mcpbetadoc/).
+  See the [ArcGIS Enterprise MCP docs](https://doc.esri.com/en/mcp-arcgis-enterprise/latest/introduction/introduction.html).
 
-- **ArcGIS Location Services MCP — public beta** — Esri's hosted MCP server over
+- **ArcGIS Location Services MCP** — Esri's hosted MCP server over
   the ArcGIS Location Platform:
   geocoding (`find_address_candidates`, `reverse_geocode`), routing
   (`solve_route`), elevation (`elevation_at_locations`), and static maps
-  (`map_with_points`, `map_with_polyline`). **Beta — not GA; may change without notice, not for
-  production.** Commercial and metered: every call bills against your ArcGIS
-  Location Platform usage. Requires a Location Platform account and an
-  access token with beta-access plus Geocoding/Routing/Elevation/Static-maps
-  privileges. Remote HTTP endpoint; bridge to it with the `mcp-remote` npx proxy
+  (`map_with_points`, `map_with_polyline`). Commercial and metered:
+  every call bills against your ArcGIS Location Platform usage. Requires
+  a Location Platform account and an access token with beta-access plus
+  Geocoding/Routing/Elevation/Static-maps privileges. Remote HTTP
+  endpoint; bridge to it with the `mcp-remote` npx proxy
   and pass the token as a Bearer header:
   ```json
   "arcgis-location-services": {
     "command": "npx",
     "args": [
       "-y", "mcp-remote",
-      "https://location-services-mcp.arcgis.com/beta/mcp",
+      "https://location-services-mcp.arcgis.com/v1/mcp",
       "--header", "Authorization: Bearer <ACCESS_TOKEN>"
     ]
   }
